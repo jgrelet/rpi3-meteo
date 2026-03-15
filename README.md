@@ -169,7 +169,7 @@ chmod +x scripts/install_docker_rpi3.sh
 Le script :
 
 - supprime les paquets Docker non officiels qui peuvent entrer en conflit
-- ajoute le depot officiel Docker pour Raspberry Pi OS
+- ajoute le depot officiel Docker `debian` adapte au Pi3 en `armhf`
 - cherche automatiquement une version `28.x` de `docker-ce`
 - installe `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin` et `docker-compose-plugin`
 - active le service Docker

@@ -38,7 +38,7 @@ sudo chmod a+r /etc/apt/keyrings/docker.asc
 
 echo "[4/8] Configuration du depot Docker officiel"
 echo \
-  "deb [arch=armhf signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/raspbian ${CODENAME} stable" \
+  "deb [arch=armhf signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian ${CODENAME} stable" \
   | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 
 echo "[5/8] Actualisation des index APT"
