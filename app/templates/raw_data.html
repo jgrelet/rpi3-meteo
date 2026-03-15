@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="{{ refresh_seconds }}">
+    <title>{{ title }} - Raw Data</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <main class="layout">
+        <nav class="nav">
+            {% for page in pages %}
+            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            {% endfor %}
+        </nav>
+        <section class="panel">
+            <h1>Messages bruts</h1>
+            {% if messages %}
+            {% for message in messages %}
+            <article class="message-card">
+                <p><strong>{{ message.recorded_at }}</strong> | {{ message.topic }}</p>
+                <pre>{{ message.payload_json }}</pre>
+            </article>
+            {% endfor %}
+            {% else %}
+            <p>Aucun message MQTT recu pour le moment.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

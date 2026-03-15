@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="{{ refresh_seconds }}">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <main class="layout">
+        <header class="hero">
+            <p class="eyebrow">Station locale</p>
+            <h1>{{ title }}</h1>
+            <p class="lede">Socle initial pour visualisation, historique et previsions sur Raspberry Pi 3.</p>
+        </header>
+
+        <nav class="nav">
+            {% for page in pages %}
+            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            {% endfor %}
+        </nav>
+
+        <section class="panel">
+            <h2>Etat MQTT</h2>
+            <p>
+                Topic: {{ mqtt_status.topic }} |
+                Connecte: {{ mqtt_status.connected }} |
+                Dernier message: {{ mqtt_status.last_message_at or "aucun" }}
+            </p>
+        </section>
+
+        <section class="panel">
+            <h2>Dernieres mesures</h2>
+            {% if latest_readings %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Capteur</th>
+                        <th>Valeur</th>
+                        <th>Canal</th>
+                        <th>Horodatage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reading in latest_readings %}
+                    <tr>
+                        <td>{{ reading.sensor_name }}</td>
+                        <td>{{ reading.numeric_value if reading.numeric_value is not none else reading.text_value }} {{ reading.unit or "" }}</td>
+                        <td>{{ reading.channel }}</td>
+                        <td>{{ reading.recorded_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Aucune mesure en base pour le moment.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

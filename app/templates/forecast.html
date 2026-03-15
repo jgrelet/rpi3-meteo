@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="{{ refresh_seconds }}">
+    <title>{{ title }} - Forecast</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <main class="layout">
+        <nav class="nav">
+            {% for page in pages %}
+            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            {% endfor %}
+        </nav>
+        <section class="panel">
+            <h1>Previsions</h1>
+            <p>Fournisseur configure: {{ forecast_provider }}</p>
+            <p>Latitude: {{ latitude or "a definir" }} | Longitude: {{ longitude or "a definir" }}</p>
+            <p>Cette page est prete pour brancher Open-Meteo en priorite.</p>
+        </section>
+    </main>
+</body>
+</html>

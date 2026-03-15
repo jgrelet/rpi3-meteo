@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="{{ refresh_seconds }}">
+    <title>{{ title }} - Reduced Data</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <main class="layout">
+        <nav class="nav">
+            {% for page in pages %}
+            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            {% endfor %}
+        </nav>
+        <section class="panel">
+            <h1>Donnees reduites</h1>
+            {% if stats %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mesure</th>
+                        <th>Echantillons</th>
+                        <th>Moyenne</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Derniere mesure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stats %}
+                    <tr>
+                        <td>{{ row.sensor_name }}</td>
+                        <td>{{ row.samples }}</td>
+                        <td>{{ row.avg_value }} {{ row.unit or "" }}</td>
+                        <td>{{ row.min_value }} {{ row.unit or "" }}</td>
+                        <td>{{ row.max_value }} {{ row.unit or "" }}</td>
+                        <td>{{ row.last_seen }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Pas encore assez de donnees pour agreger des statistiques.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

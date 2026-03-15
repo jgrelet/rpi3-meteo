@@ -1,0 +1,10 @@
+services:
+  web:
+    build:
+      context: .
+    container_name: rpi3-meteo-web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
