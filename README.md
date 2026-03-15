@@ -150,3 +150,32 @@ Par defaut, il travaille dans `/home/jgrelet/rpi3-meteo` et execute :
 - `docker compose down`
 - `docker compose up -d --build`
 - `docker image prune -f`
+
+## Installation Docker sur le Pi3
+
+Le script [scripts/install_docker_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/install_docker_rpi3.sh) installe Docker Engine depuis le depot officiel Docker pour Raspberry Pi OS 32-bit.
+
+```bash
+chmod +x scripts/install_docker_rpi3.sh
+./scripts/install_docker_rpi3.sh
+```
+
+Le script :
+
+- supprime les paquets Docker non officiels qui peuvent entrer en conflit
+- ajoute le depot officiel Docker pour Raspberry Pi OS
+- cherche automatiquement une version `28.x` de `docker-ce`
+- installe `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin` et `docker-compose-plugin`
+- active le service Docker
+- execute `hello-world`
+- ajoute l'utilisateur courant au groupe `docker`
+
+Notes importantes :
+
+- Docker Docs indique que `Docker Engine v28` est la derniere grande version supportee sur Raspberry Pi OS 32-bit `armhf`
+- apres ajout au groupe `docker`, il faut se deconnecter/reconnecter avant d'utiliser `docker` sans `sudo`
+
+Sources officielles :
+
+- https://docs.docker.com/engine/install/raspberry-pi-os/
+- https://docs.docker.com/engine/install/linux-postinstall/
