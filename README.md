@@ -111,6 +111,15 @@ Ce script :
 - active le service au demarrage
 - redemarre le broker
 
+Configuration minimale retenue pour le Pi3 :
+
+```conf
+listener 1883 0.0.0.0
+allow_anonymous true
+persistence true
+persistence_location /var/lib/mosquitto/
+```
+
 Verification :
 
 ```bash
