@@ -73,6 +73,17 @@ uvicorn app.main:app --reload
 
 Application disponible sur `http://127.0.0.1:8000`.
 
+Exemple d'utilisation des variables d'environnement hors Docker :
+
+```bash
+export RPI3_METEO_LOCATION_LABEL="Keronvel, 29810 Ploumoguer"
+export RPI3_METEO_LATITUDE=48.4018424
+export RPI3_METEO_LONGITUDE=-4.6927117
+export RPI3_METEO_ALTITUDE_M=65
+export RPI3_METEO_MQTT_BROKER=127.0.0.1
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
 ## Demarrage Docker
 
 ```bash
@@ -247,3 +258,13 @@ chmod +x scripts/start_kiosk.sh scripts/stop_kiosk.sh scripts/install_kiosk_shor
 ```
 
 Le script genere automatiquement les fichiers `.desktop` avec le chemin reel du depot sur le Pi.
+
+## Verification rapide
+
+Une verification simple de syntaxe Python consiste a compiler tous les modules sans les executer :
+
+```bash
+python3 -m compileall app
+```
+
+Cette commande est utile pour detecter rapidement une erreur de syntaxe avant integration ou redeploiement.

@@ -29,24 +29,36 @@
             {% if not forecast.configured %}
             <p>Configurer `RPI3_METEO_LOCATION_LABEL`, `RPI3_METEO_LATITUDE`, `RPI3_METEO_LONGITUDE` et `RPI3_METEO_ALTITUDE_M` dans `.env`.</p>
             {% else %}
-            <div class="metrics metrics-reduced">
-                <div class="metric-box metric-box-large">
-                    <span class="metric-label">Maintenant</span>
-                    <strong>{{ forecast.current.temperature }}</strong>
-                    <span class="metric-unit">C</span>
-                    <span class="metric-meta">{{ forecast.current.weather }}</span>
+            <div class="forecast-now">
+                <div class="forecast-now-main">
+                    <span class="forecast-icon">{{ forecast.current.icon }}</span>
+                    <div>
+                        <span class="metric-label">Maintenant</span>
+                        <strong class="forecast-temp">{{ forecast.current.temperature }} C</strong>
+                        <span class="metric-meta">{{ forecast.current.weather }}</span>
+                    </div>
                 </div>
-                <div class="metric-box metric-box-large">
-                    <span class="metric-label">Pluie</span>
-                    <strong>{{ forecast.current.rain }}</strong>
-                    <span class="metric-unit">mm</span>
-                    <span class="metric-meta">{{ forecast.current.time }}</span>
-                </div>
-                <div class="metric-box metric-box-large">
-                    <span class="metric-label">Vent</span>
-                    <strong>{{ forecast.current.wind }}</strong>
-                    <span class="metric-unit">km/h</span>
-                    <span class="metric-meta">Dir {{ forecast.current.direction }}</span>
+                <div class="forecast-now-side">
+                    <div class="mini-stat">
+                        <span class="metric-label">Pluie</span>
+                        <strong>{{ forecast.current.rain }}</strong>
+                        <span class="metric-unit">mm</span>
+                    </div>
+                    <div class="mini-stat">
+                        <span class="metric-label">Vent</span>
+                        <strong>{{ forecast.current.wind }}</strong>
+                        <span class="metric-unit">km/h</span>
+                    </div>
+                    <div class="mini-stat">
+                        <span class="metric-label">Direction</span>
+                        <strong>{{ forecast.current.direction }}</strong>
+                        <span class="metric-unit">deg</span>
+                    </div>
+                    <div class="mini-stat">
+                        <span class="metric-label">Observation</span>
+                        <strong>{{ forecast.current.time[-5:] if forecast.current.time != '-' else '-' }}</strong>
+                        <span class="metric-unit">heure</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -56,31 +68,17 @@
                 <h2>Prochaines heures</h2>
                 <span>{{ forecast_provider }}</span>
             </div>
-            <div class="table-wrap table-wrap-compact">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Heure</th>
-                            <th>Temp</th>
-                            <th>Pluie</th>
-                            <th>Vent</th>
-                            <th>Dir</th>
-                            <th>Code</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in forecast.next_hours %}
-                        <tr>
-                            <td>{{ row.time }}</td>
-                            <td>{{ row.temperature }} C</td>
-                            <td>{{ row.rain }} mm</td>
-                            <td>{{ row.wind }} km/h</td>
-                            <td>{{ row.direction }}</td>
-                            <td>{{ row.weather }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="hour-strip">
+                {% for row in forecast.next_hours %}
+                <article class="hour-card">
+                    <span class="forecast-icon forecast-icon-small">{{ row.icon }}</span>
+                    <strong>{{ row.time }}</strong>
+                    <span>{{ row.temperature }} C</span>
+                    <span>{{ row.rain }} mm</span>
+                    <span>{{ row.wind }} km/h</span>
+                    <span class="metric-meta">{{ row.weather }}</span>
+                </article>
+                {% endfor %}
             </div>
         </section>
 
@@ -91,8 +89,11 @@
             </div>
             <div class="metrics forecast-days">
                 {% for day in forecast.daily_cards %}
-                <div class="metric-box metric-box-large">
-                    <span class="metric-label">{{ day.day }}</span>
+                <div class="metric-box metric-box-large forecast-day-card">
+                    <div class="forecast-day-head">
+                        <span class="metric-label">{{ day.day }}</span>
+                        <span class="forecast-icon forecast-icon-small">{{ day.icon }}</span>
+                    </div>
                     <strong>{{ day.weather }}</strong>
                     <span class="metric-meta">Min {{ day.temp_min }} C | Max {{ day.temp_max }} C</span>
                     <span class="metric-meta">Pluie {{ day.rain }} mm | Vent {{ day.wind }} km/h</span>

@@ -41,6 +41,30 @@ WEATHER_CODE_LABELS = {
     99: "Orage fort",
 }
 
+WEATHER_CODE_ICONS = {
+    0: "SUN",
+    1: "SUN",
+    2: "CLD",
+    3: "OVR",
+    45: "FOG",
+    48: "FOG",
+    51: "DRZ",
+    53: "DRZ",
+    55: "DRZ",
+    61: "RAN",
+    63: "RAN",
+    65: "RAN",
+    71: "SNW",
+    73: "SNW",
+    75: "SNW",
+    80: "SHR",
+    81: "SHR",
+    82: "SHR",
+    95: "STM",
+    96: "STM",
+    99: "STM",
+}
+
 
 def _fetch_open_meteo_payload() -> Dict:
     if APP_CONFIG["latitude"] is None or APP_CONFIG["longitude"] is None:
@@ -84,6 +108,12 @@ def _weather_label(code: Optional[int]) -> str:
     if code is None:
         return "-"
     return WEATHER_CODE_LABELS.get(int(code), str(code))
+
+
+def _weather_icon(code: Optional[int]) -> str:
+    if code is None:
+        return "---"
+    return WEATHER_CODE_ICONS.get(int(code), "MET")
 
 
 def _compact_hour(value: str) -> str:
@@ -138,6 +168,7 @@ def get_forecast() -> Dict:
                 "wind": str(hourly["wind_speed_10m"][index]),
                 "direction": _format_wind_direction(hourly["wind_direction_10m"][index]),
                 "weather": _weather_label(hourly["weather_code"][index]),
+                "icon": _weather_icon(hourly["weather_code"][index]),
             }
         )
 
@@ -155,6 +186,7 @@ def get_forecast() -> Dict:
                 "direction": _format_wind_direction(daily["wind_direction_10m_dominant"][index]),
                 "sunrise": _compact_hour(daily["sunrise"][index]),
                 "sunset": _compact_hour(daily["sunset"][index]),
+                "icon": _weather_icon(daily["weather_code"][index]),
             }
         )
 
@@ -168,6 +200,7 @@ def get_forecast() -> Dict:
             "wind": str(current.get("wind_speed_10m", "-")),
             "direction": _format_wind_direction(current.get("wind_direction_10m")),
             "weather": _weather_label(current.get("weather_code")),
+            "icon": _weather_icon(current.get("weather_code")),
             "time": current.get("time", "-"),
         },
         "next_hours": next_hours,

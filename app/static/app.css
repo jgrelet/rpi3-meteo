@@ -145,6 +145,104 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.forecast-now {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 8px;
+}
+
+.forecast-now-main,
+.forecast-now-side {
+    padding: 10px;
+    border-radius: 12px;
+    background: rgba(29, 42, 47, 0.05);
+}
+
+.forecast-now-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.forecast-temp {
+    display: block;
+    font-size: 1.7rem;
+    margin: 2px 0;
+}
+
+.forecast-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 56px;
+    min-height: 56px;
+    border-radius: 14px;
+    background: rgba(199, 88, 43, 0.14);
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.forecast-icon-small {
+    min-width: 42px;
+    min-height: 42px;
+    font-size: 0.82rem;
+}
+
+.forecast-now-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.mini-stat {
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(255, 251, 245, 0.85);
+}
+
+.mini-stat strong {
+    display: block;
+    margin: 2px 0;
+    font-size: 1rem;
+}
+
+.hour-strip {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.hour-card {
+    padding: 8px 6px;
+    border-radius: 12px;
+    background: rgba(29, 42, 47, 0.05);
+    text-align: center;
+    font-size: 0.78rem;
+}
+
+.hour-card strong {
+    display: block;
+    margin: 4px 0;
+    font-size: 0.95rem;
+}
+
+.hour-card span {
+    display: block;
+}
+
+.forecast-day-card {
+    min-height: 132px;
+}
+
+.forecast-day-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
 .metric-box {
     padding: 8px 8px 7px;
     border-radius: 12px;
@@ -255,6 +353,14 @@ pre {
         grid-template-columns: 1fr;
     }
 
+    .forecast-now {
+        grid-template-columns: 1fr;
+    }
+
+    .hour-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .table-wrap {
         max-height: 180px;
     }
@@ -293,6 +399,14 @@ pre {
 
     .forecast-days {
         grid-template-columns: 1fr;
+    }
+
+    .forecast-now {
+        grid-template-columns: 1fr;
+    }
+
+    .hour-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .nav-item {
