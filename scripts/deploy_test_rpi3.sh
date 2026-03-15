@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-APP_DIR="/home/jgrelet/rpi3-meteo"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+APP_DIR="${APP_DIR:-$DEFAULT_APP_DIR}"
 
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "Depot introuvable: $APP_DIR"

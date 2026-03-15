@@ -144,7 +144,13 @@ chmod +x scripts/deploy_test_rpi3.sh
 ./scripts/deploy_test_rpi3.sh
 ```
 
-Par defaut, il travaille dans `/home/jgrelet/rpi3-meteo` et execute :
+Par defaut, il travaille dans le depot parent du script, donc dans le clone courant. Tu peux aussi surcharger le chemin cible :
+
+```bash
+APP_DIR=/home/jgrelet/github/python/rpi3-meteo ./scripts/deploy_test_rpi3.sh
+```
+
+Puis il execute :
 
 - `git pull --ff-only`
 - `docker compose down`
