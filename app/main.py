@@ -16,6 +16,7 @@ from app.database import (
     fetch_reduced_stats,
     init_db,
 )
+from app.forecast import get_forecast
 from app.mqtt_ingestion import MqttIngestionService
 
 
@@ -189,6 +190,7 @@ async def page_placeholder(request: Request, page_name: str):
             },
         )
     if page_name == "forecast":
+        forecast = get_forecast()
         return templates.TemplateResponse(
             "forecast.html",
             {
@@ -199,6 +201,7 @@ async def page_placeholder(request: Request, page_name: str):
                 "forecast_provider": APP_CONFIG["default_forecast_provider"],
                 "latitude": APP_CONFIG["latitude"],
                 "longitude": APP_CONFIG["longitude"],
+                "forecast": forecast,
             },
         )
     return {"page": page_name, "status": "todo"}

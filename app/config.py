@@ -13,8 +13,10 @@ APP_CONFIG = {
     "open_meteo_enabled": True,
     "openweather_enabled": False,
     "default_forecast_provider": "open-meteo",
-    "latitude": None,
-    "longitude": None,
+    "latitude": 48.4018424,
+    "longitude": -4.6927117,
+    "altitude_m": 65,
+    "location_label": "Keronvel, 29810 Ploumoguer",
 }
 
 DATABASE = {

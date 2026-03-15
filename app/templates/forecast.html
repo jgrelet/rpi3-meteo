@@ -24,11 +24,79 @@
         <section class="panel">
             <div class="panel-head">
                 <h2>Previsions</h2>
-                <span>Integration a venir</span>
+                <span>{{ forecast.location_label }}</span>
             </div>
-            <p>Fournisseur configure: {{ forecast_provider }}</p>
-            <p>Latitude: {{ latitude or "a definir" }} | Longitude: {{ longitude or "a definir" }}</p>
-            <p>Cette page est prete pour brancher Open-Meteo en priorite.</p>
+            <div class="metrics metrics-reduced">
+                <div class="metric-box metric-box-large">
+                    <span class="metric-label">Maintenant</span>
+                    <strong>{{ forecast.current.temperature }}</strong>
+                    <span class="metric-unit">C</span>
+                    <span class="metric-meta">{{ forecast.current.weather }}</span>
+                </div>
+                <div class="metric-box metric-box-large">
+                    <span class="metric-label">Pluie</span>
+                    <strong>{{ forecast.current.rain }}</strong>
+                    <span class="metric-unit">mm</span>
+                    <span class="metric-meta">{{ forecast.current.time }}</span>
+                </div>
+                <div class="metric-box metric-box-large">
+                    <span class="metric-label">Vent</span>
+                    <strong>{{ forecast.current.wind }}</strong>
+                    <span class="metric-unit">km/h</span>
+                    <span class="metric-meta">Dir {{ forecast.current.direction }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Prochaines heures</h2>
+                <span>{{ forecast_provider }}</span>
+            </div>
+            <div class="table-wrap table-wrap-compact">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Heure</th>
+                            <th>Temp</th>
+                            <th>Pluie</th>
+                            <th>Vent</th>
+                            <th>Dir</th>
+                            <th>Code</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in forecast.next_hours %}
+                        <tr>
+                            <td>{{ row.time }}</td>
+                            <td>{{ row.temperature }} C</td>
+                            <td>{{ row.rain }} mm</td>
+                            <td>{{ row.wind }} km/h</td>
+                            <td>{{ row.direction }}</td>
+                            <td>{{ row.weather }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Aujourd'hui et 3 jours</h2>
+                <span>{{ forecast.altitude_m }} m</span>
+            </div>
+            <div class="metrics forecast-days">
+                {% for day in forecast.daily_cards %}
+                <div class="metric-box metric-box-large">
+                    <span class="metric-label">{{ day.day }}</span>
+                    <strong>{{ day.weather }}</strong>
+                    <span class="metric-meta">Min {{ day.temp_min }} C | Max {{ day.temp_max }} C</span>
+                    <span class="metric-meta">Pluie {{ day.rain }} mm | Vent {{ day.wind }} km/h</span>
+                    <span class="metric-meta">Dir {{ day.direction }} | Soleil {{ day.sunrise }}-{{ day.sunset }}</span>
+                </div>
+                {% endfor %}
+            </div>
         </section>
     </main>
 </body>
