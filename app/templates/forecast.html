@@ -63,7 +63,7 @@
                 </div>
             </div>
             {% elif forecast_page == "forecast-hours" %}
-            <div class="hour-strip">
+            <div class="hour-strip forecast-surface">
                 {% for row in forecast.next_hours %}
                 <article class="hour-card">
                     <span class="forecast-icon forecast-icon-small">{{ row.icon }}</span>
@@ -76,17 +76,26 @@
                 {% endfor %}
             </div>
             {% elif forecast_page == "forecast-days" %}
-            <div class="metrics forecast-days">
+            <div class="metrics forecast-days forecast-surface">
                 {% for day in forecast.daily_cards %}
                 <div class="metric-box metric-box-large forecast-day-card">
                     <div class="forecast-day-head">
                         <span class="metric-label">{{ day.day }}</span>
                         <span class="forecast-icon forecast-icon-small">{{ day.icon }}</span>
                     </div>
-                    <strong>{{ day.weather }}</strong>
-                    <span class="metric-meta">Min {{ day.temp_min }} C | Max {{ day.temp_max }} C</span>
-                    <span class="metric-meta">Pluie {{ day.rain }} mm | Vent {{ day.wind }} km/h</span>
-                    <span class="metric-meta">Dir {{ day.direction }} | Soleil {{ day.sunrise }}-{{ day.sunset }}</span>
+                    <strong class="forecast-day-title">{{ day.weather }}</strong>
+                    <div class="forecast-day-line">
+                        <span>Min {{ day.temp_min }} C</span>
+                        <span>Max {{ day.temp_max }} C</span>
+                    </div>
+                    <div class="forecast-day-line">
+                        <span>Pluie {{ day.rain }} mm</span>
+                        <span>Vent {{ day.wind }} km/h</span>
+                    </div>
+                    <div class="forecast-day-line">
+                        <span>Dir {{ day.direction }}</span>
+                        <span>{{ day.sunrise }}-{{ day.sunset }}</span>
+                    </div>
                 </div>
                 {% endfor %}
             </div>

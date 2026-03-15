@@ -42,27 +42,27 @@ WEATHER_CODE_LABELS = {
 }
 
 WEATHER_CODE_ICONS = {
-    0: "SUN",
-    1: "SUN",
-    2: "CLD",
-    3: "OVR",
-    45: "FOG",
-    48: "FOG",
-    51: "DRZ",
-    53: "DRZ",
-    55: "DRZ",
-    61: "RAN",
-    63: "RAN",
-    65: "RAN",
-    71: "SNW",
-    73: "SNW",
-    75: "SNW",
-    80: "SHR",
-    81: "SHR",
-    82: "SHR",
-    95: "STM",
-    96: "STM",
-    99: "STM",
+    0: "☀",
+    1: "☀",
+    2: "⛅",
+    3: "☁",
+    45: "〰",
+    48: "〰",
+    51: "☂",
+    53: "☂",
+    55: "☂",
+    61: "☔",
+    63: "☔",
+    65: "☔",
+    71: "❄",
+    73: "❄",
+    75: "❄",
+    80: "☔",
+    81: "☔",
+    82: "☔",
+    95: "⚡",
+    96: "⛈",
+    99: "⛈",
 }
 
 
@@ -112,8 +112,8 @@ def _weather_label(code: Optional[int]) -> str:
 
 def _weather_icon(code: Optional[int]) -> str:
     if code is None:
-        return "---"
-    return WEATHER_CODE_ICONS.get(int(code), "MET")
+        return "·"
+    return WEATHER_CODE_ICONS.get(int(code), "☁")
 
 
 def _compact_hour(value: str) -> str:

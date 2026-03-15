@@ -163,6 +163,12 @@ h2 {
     background: rgba(29, 42, 47, 0.05);
 }
 
+.forecast-surface {
+    padding: 2px;
+    border-radius: 14px;
+    background: rgba(29, 42, 47, 0.04);
+}
+
 .forecast-now-main {
     display: flex;
     align-items: center;
@@ -184,15 +190,15 @@ h2 {
     border-radius: 14px;
     background: rgba(199, 88, 43, 0.14);
     color: var(--accent);
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-size: 1.7rem;
+    font-weight: 400;
+    line-height: 1;
 }
 
 .forecast-icon-small {
     min-width: 42px;
     min-height: 42px;
-    font-size: 0.82rem;
+    font-size: 1.25rem;
 }
 
 .forecast-now-side {
@@ -220,9 +226,9 @@ h2 {
 }
 
 .hour-card {
-    padding: 8px 6px;
+    padding: 7px 5px;
     border-radius: 12px;
-    background: rgba(29, 42, 47, 0.05);
+    background: rgba(255, 251, 245, 0.88);
     text-align: center;
     font-size: 0.78rem;
 }
@@ -238,14 +244,31 @@ h2 {
 }
 
 .forecast-day-card {
-    min-height: 132px;
+    min-height: 108px;
+    padding: 7px 8px 6px;
+    background: rgba(255, 251, 245, 0.88);
 }
 
 .forecast-day-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.forecast-day-title {
     margin-bottom: 4px;
+    font-size: 1rem;
+}
+
+.forecast-day-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 0.7rem;
 }
 
 .metric-box {
@@ -355,7 +378,7 @@ pre {
     }
 
     .forecast-days {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .forecast-now {
@@ -364,6 +387,10 @@ pre {
 
     .hour-strip {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .forecast-day-card {
+        min-height: 102px;
     }
 
     .table-wrap {
@@ -403,7 +430,7 @@ pre {
     }
 
     .forecast-days {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .forecast-now {
@@ -414,9 +441,19 @@ pre {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .forecast-day-card {
+        min-height: 102px;
+    }
+
     .nav-item {
         min-height: 32px;
         padding: 6px 10px;
         font-size: 0.88rem;
+    }
+}
+
+@media (max-width: 560px) {
+    .forecast-days {
+        grid-template-columns: 1fr;
     }
 }
