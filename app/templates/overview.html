@@ -24,7 +24,8 @@
         <section class="panel">
             <h2>Etat MQTT</h2>
             <p>
-                Topic: {{ mqtt_status.topic }} |
+                Agrege: {{ mqtt_status.aggregated_topic }} |
+                Brut: {{ mqtt_status.raw_topic }} |
                 Connecte: {{ mqtt_status.connected }} |
                 Dernier message: {{ mqtt_status.last_message_at or "aucun" }}
             </p>
@@ -47,7 +48,7 @@
                     <tr>
                         <td>{{ reading.sensor_name }}</td>
                         <td>{{ reading.numeric_value if reading.numeric_value is not none else reading.text_value }} {{ reading.unit or "" }}</td>
-                        <td>{{ reading.channel }}</td>
+                        <td>{{ reading.export_mode }}</td>
                         <td>{{ reading.recorded_at }}</td>
                     </tr>
                     {% endfor %}

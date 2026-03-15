@@ -87,57 +87,38 @@ docker buildx build --platform linux/arm/v7 -t rpi3-meteo:test .
 
 Ce test de build est utile, mais il ne remplace pas une validation reelle sur le Pi3 pour la memoire, les performances et le demarrage complet.
 
-## Mosquitto sur Raspberry Pi 3
+## Stack Docker complete
 
-Pour un systeme autonome, le plus propre est d'executer le broker MQTT directement sur le Pi3.
+La cible de deploiement est maintenant entierement conteneurisee :
+
+- `mosquitto` tourne dans `docker compose`
+- l'application web tourne dans `docker compose`
+- la persistance MQTT et SQLite est geree par des volumes Docker
 
 Configuration fournie :
 
+- [docker-compose.yml](/home/jgrelet/git/Python/rpi3-meteo/docker-compose.yml)
 - [mosquitto/mosquitto.conf](/home/jgrelet/git/Python/rpi3-meteo/mosquitto/mosquitto.conf)
-- [scripts/install_mosquitto_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/install_mosquitto_rpi3.sh)
 - [scripts/deploy_test_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/deploy_test_rpi3.sh)
 
-Installation :
+Notes de fonctionnement :
 
-```bash
-chmod +x scripts/install_mosquitto_rpi3.sh
-./scripts/install_mosquitto_rpi3.sh
-```
-
-Ce script :
-
-- installe `mosquitto` et `mosquitto-clients`
-- copie la configuration dans `/etc/mosquitto/conf.d/rpi3-meteo.conf`
-- active le service au demarrage
-- redemarre le broker
-
-Configuration minimale retenue pour le Pi3 :
-
-```conf
-listener 1883 0.0.0.0
-allow_anonymous true
-persistence true
-persistence_location /var/lib/mosquitto/
-```
-
-Verification :
-
-```bash
-systemctl status mosquitto
-mosquitto_sub -h 127.0.0.1 -p 1883 -t weather/sensors -v
-```
+- le Pico publie sur l'IP du Pi, port `1883`
+- ce port est expose par le conteneur `mosquitto`
+- le conteneur `web` se connecte au broker via le nom de service Docker `mosquitto`
+- les donnees SQLite sont conservees dans le volume Docker `sqlite_data`
+- les donnees Mosquitto sont conservees dans les volumes `mosquitto_data` et `mosquitto_log`
 
 Test rapide avec un faux message :
 
 ```bash
-.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1
+.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode raw
+.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
 ```
-
-Si tu veux durcir ensuite la config, la premiere evolution sera de remplacer `allow_anonymous true` par une authentification locale.
 
 ## Redeploiement de test sur le Pi3
 
-Le script [scripts/deploy_test_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/deploy_test_rpi3.sh) permet de remettre a jour et relancer l'application Docker sur le Raspberry Pi 3.
+Le script [scripts/deploy_test_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/deploy_test_rpi3.sh) permet de remettre a jour et relancer toute la stack Docker sur le Raspberry Pi 3.
 
 ```bash
 chmod +x scripts/deploy_test_rpi3.sh

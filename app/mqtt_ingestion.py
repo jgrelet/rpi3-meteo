@@ -18,7 +18,9 @@ class MqttIngestionService:
     def __init__(self) -> None:
         mqtt_cfg = INGESTION["mqtt"]
         self.enabled = mqtt_cfg.get("enabled", False)
-        self.topic = mqtt_cfg["topic"]
+        self.aggregated_topic = mqtt_cfg["aggregated_topic"]
+        self.raw_topic = mqtt_cfg["raw_topic"]
+        self.topics = [self.aggregated_topic, self.raw_topic]
         self.client = mqtt_client.Client(
             mqtt_client.CallbackAPIVersion.VERSION2,
             client_id=mqtt_cfg["client_id"],
@@ -41,7 +43,7 @@ class MqttIngestionService:
             return
         self.client.connect_async(self.host, self.port, self.keepalive)
         self.client.loop_start()
-        logger.info("MQTT ingestion starting for %s:%s topic=%s", self.host, self.port, self.topic)
+        logger.info("MQTT ingestion starting for %s:%s topics=%s", self.host, self.port, self.topics)
 
     def stop(self) -> None:
         if not self.enabled:
@@ -53,7 +55,8 @@ class MqttIngestionService:
         return {
             "enabled": self.enabled,
             "connected": self.connected,
-            "topic": self.topic,
+            "aggregated_topic": self.aggregated_topic,
+            "raw_topic": self.raw_topic,
             "last_message_at": self.last_message_at,
             "last_error": self.last_error,
         }
@@ -61,9 +64,10 @@ class MqttIngestionService:
     def _on_connect(self, client, _userdata, _flags, reason_code, _properties) -> None:
         self.connected = reason_code == 0
         if self.connected:
-            client.subscribe(self.topic)
+            for topic in self.topics:
+                client.subscribe(topic)
             self.last_error = None
-            logger.info("MQTT connected and subscribed to %s", self.topic)
+            logger.info("MQTT connected and subscribed to %s", self.topics)
         else:
             self.last_error = f"connect_failed:{reason_code}"
             logger.warning("MQTT connection failed: %s", reason_code)

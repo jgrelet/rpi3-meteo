@@ -19,7 +19,7 @@
             {% if messages %}
             {% for message in messages %}
             <article class="message-card">
-                <p><strong>{{ message.recorded_at }}</strong> | {{ message.topic }}</p>
+                <p><strong>{{ message.recorded_at }}</strong> | {{ message.topic }} | {{ message.export_mode }}</p>
                 <pre>{{ message.payload_json }}</pre>
             </article>
             {% endfor %}

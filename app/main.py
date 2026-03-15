@@ -36,7 +36,9 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def overview(request: Request) -> HTMLResponse:
-    latest_readings = fetch_latest_readings()
+    latest_readings = fetch_latest_readings(export_mode="aggregated")
+    if not latest_readings:
+        latest_readings = fetch_latest_readings(export_mode="raw")
     context = {
         "request": request,
         "title": UI["title"],
@@ -60,7 +62,7 @@ async def health() -> Dict[str, Union[str, bool]]:
 @app.get("/pages/{page_name}")
 async def page_placeholder(request: Request, page_name: str):
     if page_name == "raw-data":
-        messages = fetch_latest_messages()
+        messages = fetch_latest_messages(export_mode="raw")
         return templates.TemplateResponse(
             "raw_data.html",
             {
@@ -72,7 +74,7 @@ async def page_placeholder(request: Request, page_name: str):
             },
         )
     if page_name == "reduced-data":
-        stats = fetch_reduced_stats()
+        stats = fetch_reduced_stats(export_mode="aggregated")
         return templates.TemplateResponse(
             "reduced_data.html",
             {

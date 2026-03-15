@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -18,21 +19,22 @@ APP_CONFIG = {
 
 DATABASE = {
     "engine": "sqlite",
-    "path": str(DATA_DIR / "weather.db"),
+    "path": os.getenv("RPI3_METEO_DB_PATH", str(DATA_DIR / "weather.db")),
 }
 
 INGESTION = {
     "default_channel": "mqtt",
     "mqtt": {
-        "enabled": True,
-        "broker": "127.0.0.1",
-        "port": 1883,
-        "topic": "weather/sensors",
-        "client_id": "rpi3-meteo-ui",
-        "user": None,
-        "password": None,
-        "keepalive": 60,
-        "qos": 0,
+        "enabled": os.getenv("RPI3_METEO_MQTT_ENABLED", "true").lower() == "true",
+        "broker": os.getenv("RPI3_METEO_MQTT_BROKER", "mosquitto"),
+        "port": int(os.getenv("RPI3_METEO_MQTT_PORT", "1883")),
+        "aggregated_topic": os.getenv("RPI3_METEO_MQTT_AGGREGATED_TOPIC", "weather/sensors"),
+        "raw_topic": os.getenv("RPI3_METEO_MQTT_RAW_TOPIC", "weather/sensors/raw"),
+        "client_id": os.getenv("RPI3_METEO_MQTT_CLIENT_ID", "rpi3-meteo-ui"),
+        "user": os.getenv("RPI3_METEO_MQTT_USER") or None,
+        "password": os.getenv("RPI3_METEO_MQTT_PASSWORD") or None,
+        "keepalive": int(os.getenv("RPI3_METEO_MQTT_KEEPALIVE", "60")),
+        "qos": int(os.getenv("RPI3_METEO_MQTT_QOS", "0")),
     },
     "serial": {
         "enabled": False,

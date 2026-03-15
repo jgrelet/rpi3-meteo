@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS raw_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source TEXT NOT NULL,
     channel TEXT NOT NULL,
+    export_mode TEXT NOT NULL DEFAULT 'aggregated',
     topic TEXT,
     payload_json TEXT NOT NULL,
     recorded_at TEXT NOT NULL
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source TEXT NOT NULL,
     channel TEXT NOT NULL,
+    export_mode TEXT NOT NULL DEFAULT 'aggregated',
     sensor_name TEXT NOT NULL,
     numeric_value REAL,
     text_value TEXT,
@@ -44,6 +46,17 @@ def _connect_sync() -> sqlite3.Connection:
     return sqlite3.connect(DATABASE["path"])
 
 
+def _ensure_column(connection: sqlite3.Connection, table_name: str, column_name: str, definition: str) -> None:
+    existing_columns = {
+        row[1]
+        for row in connection.execute("PRAGMA table_info({})".format(table_name)).fetchall()
+    }
+    if column_name not in existing_columns:
+        connection.execute(
+            "ALTER TABLE {} ADD COLUMN {} {}".format(table_name, column_name, definition)
+        )
+
+
 def _guess_unit(sensor_name: str) -> Optional[str]:
     suffix_to_unit = {
         "_temperature_c": "C",
@@ -64,7 +77,7 @@ def _guess_unit(sensor_name: str) -> Optional[str]:
 def _normalize_payload(payload: Dict) -> List[Tuple[str, Optional[float], Optional[str], Optional[str]]]:
     readings = []
     for key, value in payload.items():
-        if key == "timestamp":
+        if key in {"timestamp", "export_mode"}:
             continue
         if key.startswith("error_"):
             readings.append((key, None, str(value), None))
@@ -85,61 +98,76 @@ def init_db() -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
         connection.executescript(CREATE_SCHEMA_SQL)
+        _ensure_column(connection, "raw_messages", "export_mode", "TEXT NOT NULL DEFAULT 'aggregated'")
+        _ensure_column(connection, "sensor_readings", "export_mode", "TEXT NOT NULL DEFAULT 'aggregated'")
         connection.commit()
 
 
 def store_payload(source: str, channel: str, topic: Optional[str], payload: Dict, recorded_at: str) -> None:
     rows = _normalize_payload(payload)
+    export_mode = str(payload.get("export_mode") or ("raw" if topic and topic.endswith("/raw") else "aggregated"))
     with _connect_sync() as connection:
         connection.execute(
             """
-            INSERT INTO raw_messages(source, channel, topic, payload_json, recorded_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO raw_messages(source, channel, export_mode, topic, payload_json, recorded_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (source, channel, topic, json.dumps(payload), recorded_at),
+            (source, channel, export_mode, topic, json.dumps(payload), recorded_at),
         )
         connection.executemany(
             """
             INSERT INTO sensor_readings(
-                source, channel, sensor_name, numeric_value, text_value, unit, recorded_at
+                source, channel, export_mode, sensor_name, numeric_value, text_value, unit, recorded_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
-                (source, channel, sensor_name, numeric_value, text_value, unit, recorded_at)
+                (source, channel, export_mode, sensor_name, numeric_value, text_value, unit, recorded_at)
                 for sensor_name, numeric_value, text_value, unit in rows
             ],
         )
         connection.commit()
 
 
-def fetch_latest_readings(limit: int = 25) -> List[Dict]:
+def fetch_latest_readings(limit: int = 25, export_mode: Optional[str] = None) -> List[Dict]:
     query = """
-    SELECT source, channel, sensor_name, numeric_value, text_value, unit, recorded_at
+    SELECT source, channel, export_mode, sensor_name, numeric_value, text_value, unit, recorded_at
     FROM sensor_readings
+    {where_clause}
     ORDER BY recorded_at DESC
     LIMIT ?
     """
+    where_clause = ""
+    params: Tuple = (limit,)
+    if export_mode:
+        where_clause = "WHERE export_mode = ?"
+        params = (export_mode, limit)
     with sqlite3.connect(DATABASE["path"]) as connection:
         connection.row_factory = sqlite3.Row
-        rows = connection.execute(query, (limit,)).fetchall()
+        rows = connection.execute(query.format(where_clause=where_clause), params).fetchall()
     return [dict(row) for row in rows]
 
 
-def fetch_latest_messages(limit: int = 20) -> List[Dict]:
+def fetch_latest_messages(limit: int = 20, export_mode: Optional[str] = None) -> List[Dict]:
     query = """
-    SELECT source, channel, topic, payload_json, recorded_at
+    SELECT source, channel, export_mode, topic, payload_json, recorded_at
     FROM raw_messages
+    {where_clause}
     ORDER BY recorded_at DESC
     LIMIT ?
     """
+    where_clause = ""
+    params: Tuple = (limit,)
+    if export_mode:
+        where_clause = "WHERE export_mode = ?"
+        params = (export_mode, limit)
     with sqlite3.connect(DATABASE["path"]) as connection:
         connection.row_factory = sqlite3.Row
-        rows = connection.execute(query, (limit,)).fetchall()
+        rows = connection.execute(query.format(where_clause=where_clause), params).fetchall()
     return [dict(row) for row in rows]
 
 
-def fetch_reduced_stats() -> List[Dict]:
+def fetch_reduced_stats(export_mode: Optional[str] = "aggregated") -> List[Dict]:
     query = """
     SELECT
         sensor_name,
@@ -151,10 +179,16 @@ def fetch_reduced_stats() -> List[Dict]:
         MAX(recorded_at) AS last_seen
     FROM sensor_readings
     WHERE numeric_value IS NOT NULL
+    {mode_clause}
     GROUP BY sensor_name, unit
     ORDER BY sensor_name
     """
+    mode_clause = ""
+    params: Tuple = ()
+    if export_mode:
+        mode_clause = "AND export_mode = ?"
+        params = (export_mode,)
     with sqlite3.connect(DATABASE["path"]) as connection:
         connection.row_factory = sqlite3.Row
-        rows = connection.execute(query).fetchall()
+        rows = connection.execute(query.format(mode_clause=mode_clause), params).fetchall()
     return [dict(row) for row in rows]

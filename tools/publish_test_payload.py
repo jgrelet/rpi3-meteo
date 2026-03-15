@@ -31,12 +31,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Publish a sample weather payload to MQTT.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=1883)
-    parser.add_argument("--topic", default="weather/sensors")
+    parser.add_argument("--topic", default=None)
+    parser.add_argument("--export-mode", choices=["raw", "aggregated"], default="raw")
     args = parser.parse_args()
 
     payload = build_payload()
+    payload["export_mode"] = args.export_mode
+    topic = args.topic or ("weather/sensors/raw" if args.export_mode == "raw" else "weather/sensors")
     publish.single(
-        topic=args.topic,
+        topic=topic,
         payload=json.dumps(payload),
         hostname=args.host,
         port=args.port,
