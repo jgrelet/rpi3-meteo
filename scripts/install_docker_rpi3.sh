@@ -32,7 +32,7 @@ sudo apt-get install -y ca-certificates curl gnupg
 
 echo "[3/8] Preparation du keyring Docker"
 sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/raspbian/gpg -o /tmp/docker.asc
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /tmp/docker.asc
 sudo mv /tmp/docker.asc /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
@@ -45,7 +45,20 @@ echo "[5/8] Actualisation des index APT"
 sudo apt-get update
 
 echo "[6/8] Recherche d'une version Docker 28.x compatible armhf"
-DOCKER_VERSION="$(apt-cache madison docker-ce | awk '$3 ~ /^5:28\./ {print $3; exit}')"
+AVAILABLE_VERSIONS="$(apt-cache madison docker-ce || true)"
+
+if [ -z "$AVAILABLE_VERSIONS" ]; then
+    echo "Aucune version de docker-ce n'est visible via apt-cache."
+    echo "Verifier les sources APT Docker avec :"
+    echo "  cat /etc/apt/sources.list.d/docker.list"
+    echo "  apt-cache madison docker-ce"
+    exit 1
+fi
+
+echo "Versions disponibles :"
+echo "$AVAILABLE_VERSIONS"
+
+DOCKER_VERSION="$(echo "$AVAILABLE_VERSIONS" | awk '$3 ~ /^5:28\./ {print $3}' | head -n 1)"
 
 if [ -z "${DOCKER_VERSION}" ]; then
     echo "Aucune version Docker 28.x n'a ete trouvee dans le depot officiel."
