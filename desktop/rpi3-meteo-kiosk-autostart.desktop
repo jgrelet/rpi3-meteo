@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=RPi3 Meteo Kiosk Autostart
+Comment=Demarrer l'interface RPi3 Meteo en mode kiosque a la connexion
+Exec=__APP_DIR__/scripts/start_kiosk.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true

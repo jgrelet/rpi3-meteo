@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=RPi3 Meteo Kiosk
+Comment=Demarrer l'interface RPi3 Meteo en mode kiosque
+Exec=__APP_DIR__/scripts/start_kiosk.sh
+Icon=web-browser
+Terminal=false
+Categories=Utility;

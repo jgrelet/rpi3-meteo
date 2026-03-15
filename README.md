@@ -182,3 +182,47 @@ Sources officielles :
 
 - https://docs.docker.com/engine/install/raspberry-pi-os/
 - https://docs.docker.com/engine/install/linux-postinstall/
+
+## Mode kiosque
+
+Le depot fournit un mode kiosque reversible pour Raspberry Pi OS avec Chromium.
+
+Scripts :
+
+- `scripts/start_kiosk.sh`
+- `scripts/stop_kiosk.sh`
+- `scripts/install_kiosk_shortcuts.sh`
+
+Lancement manuel :
+
+```bash
+chmod +x scripts/start_kiosk.sh scripts/stop_kiosk.sh
+./scripts/start_kiosk.sh
+```
+
+Arret manuel :
+
+```bash
+./scripts/stop_kiosk.sh
+```
+
+Reprendre la main :
+
+- `Alt+F4` ferme la fenetre kiosque
+- `Ctrl+Alt+T` ouvre un terminal
+- le script `stop_kiosk.sh` ferme uniquement le Chromium lance pour `http://127.0.0.1:8000`
+
+Lanceurs graphiques fournis :
+
+- `desktop/rpi3-meteo-kiosk.desktop`
+- `desktop/rpi3-meteo-kiosk-stop.desktop`
+- `desktop/rpi3-meteo-kiosk-autostart.desktop`
+
+Installation conseillee sur le Pi :
+
+```bash
+chmod +x scripts/start_kiosk.sh scripts/stop_kiosk.sh scripts/install_kiosk_shortcuts.sh
+./scripts/install_kiosk_shortcuts.sh
+```
+
+Le script genere automatiquement les fichiers `.desktop` avec le chemin reel du depot sur le Pi.
