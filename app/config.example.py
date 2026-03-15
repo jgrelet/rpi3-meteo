@@ -65,6 +65,8 @@ UI = {
         "overview",
         "raw-data",
         "reduced-data",
-        "forecast",
+        "forecast-now",
+        "forecast-hours",
+        "forecast-days",
     ],
 }

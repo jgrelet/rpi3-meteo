@@ -10,6 +10,12 @@ Application de visualisation meteo ciblee pour Raspberry Pi 3.
 - affichage local compatible ecran tactile 7 pouces
 - previsions a brancher ensuite via `Open-Meteo`
 
+Les previsions sont exposees sur trois pages dediees pour limiter le scrolling sur petit ecran :
+
+- `/pages/forecast-now`
+- `/pages/forecast-hours`
+- `/pages/forecast-days`
+
 ## Contrat MQTT
 
 Le projet consomme les messages JSON publies par `weather_web_sensors` sur deux topics :

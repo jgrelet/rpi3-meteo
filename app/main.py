@@ -26,7 +26,9 @@ PAGE_LABELS = {
     "overview": "Accueil",
     "raw-data": "Temps reel",
     "reduced-data": "Synthese",
-    "forecast": "Previsions",
+    "forecast-now": "Maintenant",
+    "forecast-hours": "Prochaines heures",
+    "forecast-days": "4 jours",
 }
 PRIMARY_REDUCED_METRICS = {
     "temperature_c": ("Temperature", "C"),
@@ -189,7 +191,7 @@ async def page_placeholder(request: Request, page_name: str):
                 "secondary_stats": split_stats["secondary"],
             },
         )
-    if page_name == "forecast":
+    if page_name in {"forecast", "forecast-now", "forecast-hours", "forecast-days"}:
         forecast = get_forecast()
         return templates.TemplateResponse(
             "forecast.html",
@@ -202,6 +204,7 @@ async def page_placeholder(request: Request, page_name: str):
                 "latitude": APP_CONFIG["latitude"],
                 "longitude": APP_CONFIG["longitude"],
                 "forecast": forecast,
+                "forecast_page": "forecast-now" if page_name == "forecast" else page_name,
             },
         )
     return {"page": page_name, "status": "todo"}

@@ -12,21 +12,16 @@
         <header class="topbar">
             <div>
                 <p class="eyebrow">Provider meteo</p>
-                <h1>Previsions</h1>
+                <h1>{{ "Maintenant" if forecast_page == "forecast-now" else "Prochaines heures" if forecast_page == "forecast-hours" else "4 jours" }}</h1>
             </div>
             <div class="status-pill off">{{ forecast_provider }}</div>
         </header>
         <nav class="nav nav-compact">
             {% for page in pages %}
-            <a class="nav-item {{ 'active' if page.id == 'forecast' else '' }}" href="{{ page.href }}">{{ page.label }}</a>
+            <a class="nav-item {{ 'active' if page.id == forecast_page else '' }}" href="{{ page.href }}">{{ page.label }}</a>
             {% endfor %}
         </nav>
-        <nav class="nav nav-compact nav-subsection">
-            <a class="nav-item" href="#forecast-now">Maintenant</a>
-            <a class="nav-item" href="#forecast-hours">Prochaines heures</a>
-            <a class="nav-item" href="#forecast-days">4 jours</a>
-        </nav>
-        <section class="panel" id="forecast-now">
+        <section class="panel">
             <div class="panel-head">
                 <h2>Previsions</h2>
                 <span>{{ forecast.location_label }}</span>
@@ -34,6 +29,7 @@
             {% if not forecast.configured %}
             <p>Configurer `RPI3_METEO_LOCATION_LABEL`, `RPI3_METEO_LATITUDE`, `RPI3_METEO_LONGITUDE` et `RPI3_METEO_ALTITUDE_M` dans `.env`.</p>
             {% else %}
+            {% if forecast_page == "forecast-now" %}
             <div class="forecast-now">
                 <div class="forecast-now-main">
                     <span class="forecast-icon">{{ forecast.current.icon }}</span>
@@ -66,13 +62,7 @@
                     </div>
                 </div>
             </div>
-        </section>
-
-        <section class="panel" id="forecast-hours">
-            <div class="panel-head">
-                <h2>Prochaines heures</h2>
-                <span>{{ forecast_provider }}</span>
-            </div>
+            {% elif forecast_page == "forecast-hours" %}
             <div class="hour-strip">
                 {% for row in forecast.next_hours %}
                 <article class="hour-card">
@@ -85,13 +75,7 @@
                 </article>
                 {% endfor %}
             </div>
-        </section>
-
-        <section class="panel" id="forecast-days">
-            <div class="panel-head">
-                <h2>Aujourd'hui et 3 jours</h2>
-                <span>{{ forecast.altitude_m }} m</span>
-            </div>
+            {% elif forecast_page == "forecast-days" %}
             <div class="metrics forecast-days">
                 {% for day in forecast.daily_cards %}
                 <div class="metric-box metric-box-large forecast-day-card">
@@ -106,6 +90,7 @@
                 </div>
                 {% endfor %}
             </div>
+            {% endif %}
             {% endif %}
         </section>
     </main>
