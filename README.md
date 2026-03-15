@@ -12,7 +12,10 @@ Application de visualisation meteo ciblee pour Raspberry Pi 3.
 
 ## Contrat MQTT
 
-Le projet consomme les messages JSON publies par `weather_web_sensors` sur le topic `weather/sensors`.
+Le projet consomme les messages JSON publies par `weather_web_sensors` sur deux topics :
+
+- `weather/sensors/raw` pour les acquisitions brutes
+- `weather/sensors` pour les snapshots agreges
 
 Exemple de payload :
 
@@ -28,22 +31,29 @@ Exemple de payload :
 }
 ```
 
-Un message de test plus complet peut etre publie avec :
+Des messages de test peuvent etre publies avec :
 
 ```bash
-.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --port 1883 --topic weather/sensors
+.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode raw
+.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
+```
+
+Pour observer les deux flux MQTT dans la stack Docker :
+
+```bash
+docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
 ```
 
 ## Configuration de l'application
 
-Le fichier actif est [app/config.py](/home/jgrelet/git/Python/rpi3-meteo/app/config.py).
-Un exemple de reference est disponible dans [app/config.example.py](/home/jgrelet/git/Python/rpi3-meteo/app/config.example.py).
+Le fichier actif est `app/config.py`.
+Un exemple de reference est disponible dans `app/config.example.py`.
 
 Parametres a adapter en priorite :
 
 - `APP_CONFIG["latitude"]` et `APP_CONFIG["longitude"]` pour les previsions
 - `INGESTION["mqtt"]["broker"]` pour pointer vers le broker local du Pi ou un broker distant
-- `INGESTION["mqtt"]["topic"]` pour rester aligne avec `weather_web_sensors`
+- `INGESTION["mqtt"]["raw_topic"]` et `INGESTION["mqtt"]["aggregated_topic"]` pour rester aligne avec `weather_web_sensors`
 - `UI["refresh_seconds"]` selon la frequence voulue sur l'ecran tactile
 - `DATABASE["path"]` si tu veux deplacer la base SQLite
 
@@ -97,9 +107,9 @@ La cible de deploiement est maintenant entierement conteneurisee :
 
 Configuration fournie :
 
-- [docker-compose.yml](/home/jgrelet/git/Python/rpi3-meteo/docker-compose.yml)
-- [mosquitto/mosquitto.conf](/home/jgrelet/git/Python/rpi3-meteo/mosquitto/mosquitto.conf)
-- [scripts/deploy_test_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/deploy_test_rpi3.sh)
+- `docker-compose.yml`
+- `mosquitto/mosquitto.conf`
+- `scripts/deploy_test_rpi3.sh`
 
 Notes de fonctionnement :
 
@@ -116,9 +126,15 @@ Test rapide avec un faux message :
 .venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
 ```
 
+Observation des messages MQTT recuperees par le broker conteneurise :
+
+```bash
+docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
+```
+
 ## Redeploiement de test sur le Pi3
 
-Le script [scripts/deploy_test_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/deploy_test_rpi3.sh) permet de remettre a jour et relancer toute la stack Docker sur le Raspberry Pi 3.
+Le script `scripts/deploy_test_rpi3.sh` permet de remettre a jour et relancer toute la stack Docker sur le Raspberry Pi 3.
 
 ```bash
 chmod +x scripts/deploy_test_rpi3.sh
@@ -128,7 +144,7 @@ chmod +x scripts/deploy_test_rpi3.sh
 Par defaut, il travaille dans le depot parent du script, donc dans le clone courant. Tu peux aussi surcharger le chemin cible :
 
 ```bash
-APP_DIR=/home/jgrelet/github/python/rpi3-meteo ./scripts/deploy_test_rpi3.sh
+APP_DIR=/home/user/github/python/rpi3-meteo ./scripts/deploy_test_rpi3.sh
 ```
 
 Puis il execute :
@@ -140,7 +156,7 @@ Puis il execute :
 
 ## Installation Docker sur le Pi3
 
-Le script [scripts/install_docker_rpi3.sh](/home/jgrelet/git/Python/rpi3-meteo/scripts/install_docker_rpi3.sh) installe Docker Engine depuis le depot officiel Docker pour Raspberry Pi OS 32-bit.
+Le script `scripts/install_docker_rpi3.sh` installe Docker Engine depuis le depot officiel Docker pour Raspberry Pi OS 32-bit.
 
 ```bash
 chmod +x scripts/install_docker_rpi3.sh
