@@ -16,12 +16,8 @@ services:
     container_name: rpi3-meteo-web
     depends_on:
       - mosquitto
-    environment:
-      RPI3_METEO_DB_PATH: /app/data/weather.db
-      RPI3_METEO_MQTT_BROKER: mosquitto
-      RPI3_METEO_MQTT_PORT: 1883
-      RPI3_METEO_MQTT_AGGREGATED_TOPIC: weather/sensors
-      RPI3_METEO_MQTT_RAW_TOPIC: weather/sensors/raw
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     volumes:

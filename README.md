@@ -48,6 +48,7 @@ docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weat
 
 Le fichier actif est `app/config.py`.
 Un exemple de reference est disponible dans `app/config.example.py`.
+Les variables d'instance et de localisation doivent etre definies dans un fichier `.env` local non versionne, a partir de `.env.generic`.
 
 Parametres a adapter en priorite :
 
@@ -60,8 +61,12 @@ Parametres a adapter en priorite :
 ## Demarrage local
 
 ```bash
+cp .env.generic .env
 python3 -m venv .venv
 source .venv/bin/activate
+set -a
+source .env
+set +a
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
@@ -71,6 +76,7 @@ Application disponible sur `http://127.0.0.1:8000`.
 ## Demarrage Docker
 
 ```bash
+cp .env.generic .env
 docker compose up --build
 ```
 
@@ -110,6 +116,7 @@ Configuration fournie :
 - `docker-compose.yml`
 - `mosquitto/mosquitto.conf`
 - `scripts/deploy_test_rpi3.sh`
+- `.env.generic`
 
 Notes de fonctionnement :
 
@@ -118,6 +125,20 @@ Notes de fonctionnement :
 - le conteneur `web` se connecte au broker via le nom de service Docker `mosquitto`
 - les donnees SQLite sont conservees dans le volume Docker `sqlite_data`
 - les donnees Mosquitto sont conservees dans les volumes `mosquitto_data` et `mosquitto_log`
+- les variables personnelles et de localisation sont lues depuis `.env`
+
+Preparation recommandee :
+
+```bash
+cp .env.generic .env
+```
+
+Puis editer `.env` pour renseigner au minimum :
+
+- `RPI3_METEO_LOCATION_LABEL`
+- `RPI3_METEO_LATITUDE`
+- `RPI3_METEO_LONGITUDE`
+- `RPI3_METEO_ALTITUDE_M`
 
 Test rapide avec un faux message :
 

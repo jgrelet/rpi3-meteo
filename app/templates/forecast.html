@@ -26,6 +26,9 @@
                 <h2>Previsions</h2>
                 <span>{{ forecast.location_label }}</span>
             </div>
+            {% if not forecast.configured %}
+            <p>Configurer `RPI3_METEO_LOCATION_LABEL`, `RPI3_METEO_LATITUDE`, `RPI3_METEO_LONGITUDE` et `RPI3_METEO_ALTITUDE_M` dans `.env`.</p>
+            {% else %}
             <div class="metrics metrics-reduced">
                 <div class="metric-box metric-box-large">
                     <span class="metric-label">Maintenant</span>
@@ -97,6 +100,7 @@
                 </div>
                 {% endfor %}
             </div>
+            {% endif %}
         </section>
     </main>
 </body>

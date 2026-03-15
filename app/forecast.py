@@ -43,6 +43,8 @@ WEATHER_CODE_LABELS = {
 
 
 def _fetch_open_meteo_payload() -> Dict:
+    if APP_CONFIG["latitude"] is None or APP_CONFIG["longitude"] is None:
+        raise ValueError("Forecast location is not configured")
     params = {
         "latitude": APP_CONFIG["latitude"],
         "longitude": APP_CONFIG["longitude"],
@@ -103,6 +105,23 @@ def get_forecast() -> Dict:
     if _forecast_cache["payload"] and now < float(_forecast_cache["expires_at"]):
         return _forecast_cache["payload"]  # type: ignore[return-value]
 
+    if APP_CONFIG["latitude"] is None or APP_CONFIG["longitude"] is None:
+        return {
+            "location_label": APP_CONFIG["location_label"],
+            "altitude_m": APP_CONFIG["altitude_m"],
+            "configured": False,
+            "current": {
+                "temperature": "-",
+                "rain": "-",
+                "wind": "-",
+                "direction": "-",
+                "weather": "Localisation non configuree",
+                "time": "-",
+            },
+            "next_hours": [],
+            "daily_cards": [],
+        }
+
     payload = _fetch_open_meteo_payload()
     current = payload.get("current", {})
     hourly = payload.get("hourly", {})
@@ -142,6 +161,7 @@ def get_forecast() -> Dict:
     forecast = {
         "location_label": APP_CONFIG["location_label"],
         "altitude_m": APP_CONFIG["altitude_m"],
+        "configured": True,
         "current": {
             "temperature": str(current.get("temperature_2m", "-")),
             "rain": str(current.get("precipitation", "-")),

@@ -5,6 +5,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 
+
+def env_float(name: str):
+    value = os.getenv(name)
+    if value in (None, ""):
+        return None
+    return float(value)
+
 APP_CONFIG = {
     "host": "0.0.0.0",
     "port": 8000,
@@ -13,10 +20,10 @@ APP_CONFIG = {
     "open_meteo_enabled": True,
     "openweather_enabled": False,
     "default_forecast_provider": "open-meteo",
-    "latitude": 48.4018424,
-    "longitude": -4.6927117,
-    "altitude_m": 65,
-    "location_label": "Keronvel, 29810 Ploumoguer",
+    "latitude": env_float("RPI3_METEO_LATITUDE"),
+    "longitude": env_float("RPI3_METEO_LONGITUDE"),
+    "altitude_m": env_float("RPI3_METEO_ALTITUDE_M"),
+    "location_label": os.getenv("RPI3_METEO_LOCATION_LABEL", "Exemple de localisation"),
 }
 
 DATABASE = {
