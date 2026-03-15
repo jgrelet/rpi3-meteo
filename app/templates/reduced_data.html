@@ -26,37 +26,53 @@
                 <h2>Statistiques agregees</h2>
                 <span>Fenetre 60 s en test</span>
             </div>
-            {% if stats %}
-            <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Mesure</th>
-                        <th>Echantillons</th>
-                        <th>Moyenne</th>
-                        <th>Min</th>
-                        <th>Max</th>
-                        <th>Derniere mesure</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in stats %}
-                    <tr>
-                        <td>{{ row.sensor_name }}</td>
-                        <td>{{ row.samples }}</td>
-                        <td>{{ row.avg_value }} {{ row.unit or "" }}</td>
-                        <td>{{ row.min_value }} {{ row.unit or "" }}</td>
-                        <td>{{ row.max_value }} {{ row.unit or "" }}</td>
-                        <td>{{ row.last_seen }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% if primary_stats %}
+            <div class="metrics metrics-reduced">
+                {% for row in primary_stats %}
+                <div class="metric-box metric-box-large">
+                    <span class="metric-label">{{ row.label }}</span>
+                    <strong>{{ row.value }}</strong>
+                    <span class="metric-unit">{{ row.unit }}</span>
+                    <span class="metric-meta">Min {{ row.min_value }} | Max {{ row.max_value }}</span>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <p>Pas encore assez de donnees pour agreger des statistiques.</p>
             {% endif %}
         </section>
+        {% if secondary_stats %}
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Mesures detaillees</h2>
+                <span>Technique</span>
+            </div>
+            <div class="table-wrap table-wrap-compact">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mesure</th>
+                            <th>Moy</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>Vu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in secondary_stats %}
+                        <tr>
+                            <td>{{ row.sensor_name }}</td>
+                            <td>{{ row.avg_value }} {{ row.unit }}</td>
+                            <td>{{ row.min_value }}</td>
+                            <td>{{ row.max_value }}</td>
+                            <td>{{ row.last_seen }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
     </main>
 </body>
 </html>

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-    <main class="layout">
+    <main class="layout layout-dashboard">
         <header class="topbar">
             <div>
                 <p class="eyebrow">Station locale</p>
@@ -62,7 +62,7 @@
         <section class="panel">
             <div class="panel-head">
                 <h2>Dernieres mesures</h2>
-                <span>{{ compact_timestamp if false else '' }}</span>
+                <span>Resume</span>
             </div>
             <div class="table-wrap">
             {% if latest_readings %}

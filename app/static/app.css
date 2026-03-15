@@ -12,8 +12,10 @@
     box-sizing: border-box;
 }
 
+html,
 body {
     margin: 0;
+    min-height: 100%;
     font-family: "IBM Plex Sans", sans-serif;
     color: var(--ink);
     background:
@@ -25,6 +27,10 @@ body {
     max-width: 800px;
     margin: 0 auto;
     padding: 10px 12px 14px;
+}
+
+.layout-dashboard {
+    padding-bottom: 8px;
 }
 
 .topbar,
@@ -53,12 +59,12 @@ p {
 
 h1 {
     margin-bottom: 0;
-    font-size: 1.9rem;
+    font-size: 1.7rem;
 }
 
 h2 {
     margin-bottom: 0;
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 
 .eyebrow {
@@ -80,8 +86,8 @@ h2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 38px;
-    padding: 8px 12px;
+    min-height: 34px;
+    padding: 6px 11px;
     border-radius: 999px;
     background: rgba(199, 88, 43, 0.1);
     color: inherit;
@@ -115,8 +121,8 @@ h2 {
 .card-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
 .panel-head {
@@ -132,13 +138,17 @@ h2 {
 .metrics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 6px;
 }
 
 .metric-box {
-    padding: 10px 10px 8px;
-    border-radius: 14px;
+    padding: 8px 8px 7px;
+    border-radius: 12px;
     background: rgba(29, 42, 47, 0.05);
+}
+
+.metric-box-large strong {
+    font-size: 1.25rem;
 }
 
 .metric-label,
@@ -150,24 +160,35 @@ h2 {
 
 .metric-box strong {
     display: block;
-    margin: 4px 0 2px;
-    font-size: 1.35rem;
+    margin: 2px 0 2px;
+    font-size: 1.15rem;
+}
+
+.metric-meta {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 0.72rem;
 }
 
 .table-wrap {
     overflow: auto;
-    max-height: 255px;
+    max-height: 205px;
+}
+
+.table-wrap-compact {
+    max-height: 150px;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
 }
 
 th,
 td {
-    padding: 8px 6px;
+    padding: 6px 5px;
     text-align: left;
     border-bottom: 1px solid var(--line);
     vertical-align: top;
@@ -205,17 +226,17 @@ pre {
 
 @media (max-width: 768px) {
     .layout {
-        padding: 8px;
+        padding: 6px;
     }
 
     .topbar,
     .panel,
     .nav {
-        padding: 10px;
+        padding: 8px 10px;
     }
 
     h1 {
-        font-size: 1.55rem;
+        font-size: 1.45rem;
     }
 
     .card-grid {
@@ -227,6 +248,44 @@ pre {
     }
 
     .table-wrap {
-        max-height: 210px;
+        max-height: 180px;
+    }
+}
+
+@media (max-width: 900px) {
+    .layout {
+        max-width: 100%;
+        padding: 6px;
+    }
+
+    .topbar,
+    .panel,
+    .nav {
+        margin-bottom: 8px;
+        padding: 8px 10px;
+    }
+
+    h1 {
+        font-size: 1.45rem;
+    }
+
+    .eyebrow {
+        margin-bottom: 3px;
+        font-size: 0.72rem;
+    }
+
+    .status-pill {
+        padding: 6px 8px;
+        font-size: 0.74rem;
+    }
+
+    .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .nav-item {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 0.88rem;
     }
 }

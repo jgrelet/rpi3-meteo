@@ -27,6 +27,14 @@ PAGE_LABELS = {
     "reduced-data": "Synthese",
     "forecast": "Previsions",
 }
+PRIMARY_REDUCED_METRICS = {
+    "temperature_c": ("Temperature", "C"),
+    "humidity_pct": ("Humidite", "%"),
+    "pressure_hpa": ("Pression", "hPa"),
+    "wind_speed_kmh": ("Vent", "km/h"),
+    "wind_dir_deg": ("Direction", "deg"),
+    "rain_mm_total": ("Pluie", "mm"),
+}
 
 
 def nav_pages() -> List[Dict[str, str]]:
@@ -71,6 +79,40 @@ def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
                 }
             )
     return cards
+
+
+def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
+    primary = []
+    secondary = []
+    for row in stats:
+        sensor_name = row["sensor_name"]
+        if sensor_name in PRIMARY_REDUCED_METRICS:
+            label, unit = PRIMARY_REDUCED_METRICS[sensor_name]
+            primary.append(
+                {
+                    "label": label,
+                    "value": str(row["avg_value"]),
+                    "unit": unit or row["unit"] or "",
+                    "min_value": str(row["min_value"]),
+                    "max_value": str(row["max_value"]),
+                    "last_seen": compact_timestamp(row["last_seen"]),
+                }
+            )
+        elif sensor_name.startswith("aggregation_") or sensor_name in {"export_interval_seconds"}:
+            continue
+        else:
+            secondary.append(
+                {
+                    "sensor_name": sensor_name,
+                    "samples": row["samples"],
+                    "avg_value": row["avg_value"],
+                    "min_value": row["min_value"],
+                    "max_value": row["max_value"],
+                    "unit": row["unit"] or "",
+                    "last_seen": compact_timestamp(row["last_seen"]),
+                }
+            )
+    return {"primary": primary, "secondary": secondary}
 
 
 @asynccontextmanager
@@ -134,6 +176,7 @@ async def page_placeholder(request: Request, page_name: str):
         )
     if page_name == "reduced-data":
         stats = fetch_reduced_stats(export_mode="aggregated")
+        split_stats = split_reduced_stats(stats)
         return templates.TemplateResponse(
             "reduced_data.html",
             {
@@ -141,7 +184,8 @@ async def page_placeholder(request: Request, page_name: str):
                 "title": UI["title"],
                 "refresh_seconds": UI["refresh_seconds"],
                 "pages": nav_pages(),
-                "stats": stats,
+                "primary_stats": split_stats["primary"],
+                "secondary_stats": split_stats["secondary"],
             },
         )
     if page_name == "forecast":
