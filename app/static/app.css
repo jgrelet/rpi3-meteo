@@ -80,6 +80,11 @@ h2 {
     gap: 6px;
     overflow-x: auto;
     white-space: nowrap;
+    scroll-behavior: smooth;
+}
+
+.nav-subsection {
+    margin-top: -2px;
 }
 
 .nav-item {
