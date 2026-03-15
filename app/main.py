@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from contextlib import asynccontextmanager
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -20,6 +21,56 @@ from app.mqtt_ingestion import MqttIngestionService
 
 templates = Jinja2Templates(directory="app/templates")
 mqtt_service = MqttIngestionService()
+PAGE_LABELS = {
+    "overview": "Accueil",
+    "raw-data": "Temps reel",
+    "reduced-data": "Synthese",
+    "forecast": "Previsions",
+}
+
+
+def nav_pages() -> List[Dict[str, str]]:
+    pages = []
+    for page in UI["pages"]:
+        pages.append(
+            {
+                "id": page,
+                "label": PAGE_LABELS.get(page, page),
+                "href": "/" if page == "overview" else "/pages/" + page,
+            }
+        )
+    return pages
+
+
+def compact_timestamp(value: str | None) -> str:
+    if not value:
+        return "-"
+    return value.replace("T", " ")[:19]
+
+
+def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
+    if not payload_json:
+        return []
+    payload = json.loads(payload_json)
+    keys = [
+        ("temperature_c", "Temperature", "C"),
+        ("humidity_pct", "Humidite", "%"),
+        ("pressure_hpa", "Pression", "hPa"),
+        ("wind_speed_kmh", "Vent", "km/h"),
+        ("wind_dir_cardinal", "Direction", ""),
+        ("rain_mm_total", "Pluie", "mm"),
+    ]
+    cards = []
+    for key, label, unit in keys:
+        if key in payload:
+            cards.append(
+                {
+                    "label": label,
+                    "value": str(payload[key]),
+                    "unit": unit,
+                }
+            )
+    return cards
 
 
 @asynccontextmanager
@@ -39,12 +90,18 @@ async def overview(request: Request) -> HTMLResponse:
     latest_readings = fetch_latest_readings(export_mode="aggregated")
     if not latest_readings:
         latest_readings = fetch_latest_readings(export_mode="raw")
+    latest_raw = fetch_latest_messages(limit=1, export_mode="raw")
+    latest_aggregated = fetch_latest_messages(limit=1, export_mode="aggregated")
     context = {
         "request": request,
         "title": UI["title"],
         "refresh_seconds": UI["refresh_seconds"],
-        "pages": UI["pages"],
+        "pages": nav_pages(),
         "latest_readings": latest_readings,
+        "raw_cards": metric_cards_from_payload(latest_raw[0]["payload_json"]) if latest_raw else [],
+        "aggregated_cards": metric_cards_from_payload(latest_aggregated[0]["payload_json"]) if latest_aggregated else [],
+        "latest_raw_at": compact_timestamp(latest_raw[0]["recorded_at"]) if latest_raw else "-",
+        "latest_aggregated_at": compact_timestamp(latest_aggregated[0]["recorded_at"]) if latest_aggregated else "-",
         "mqtt_status": mqtt_service.status(),
     }
     return templates.TemplateResponse("overview.html", context)
@@ -69,8 +126,10 @@ async def page_placeholder(request: Request, page_name: str):
                 "request": request,
                 "title": UI["title"],
                 "refresh_seconds": UI["refresh_seconds"],
-                "pages": UI["pages"],
+                "pages": nav_pages(),
                 "messages": messages,
+                "raw_cards": metric_cards_from_payload(messages[0]["payload_json"]) if messages else [],
+                "latest_raw_at": compact_timestamp(messages[0]["recorded_at"]) if messages else "-",
             },
         )
     if page_name == "reduced-data":
@@ -81,7 +140,7 @@ async def page_placeholder(request: Request, page_name: str):
                 "request": request,
                 "title": UI["title"],
                 "refresh_seconds": UI["refresh_seconds"],
-                "pages": UI["pages"],
+                "pages": nav_pages(),
                 "stats": stats,
             },
         )
@@ -92,7 +151,7 @@ async def page_placeholder(request: Request, page_name: str):
                 "request": request,
                 "title": UI["title"],
                 "refresh_seconds": UI["refresh_seconds"],
-                "pages": UI["pages"],
+                "pages": nav_pages(),
                 "forecast_provider": APP_CONFIG["default_forecast_provider"],
                 "latitude": APP_CONFIG["latitude"],
                 "longitude": APP_CONFIG["longitude"],

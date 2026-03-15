@@ -9,30 +9,62 @@
 </head>
 <body>
     <main class="layout">
-        <header class="hero">
-            <p class="eyebrow">Station locale</p>
-            <h1>{{ title }}</h1>
-            <p class="lede">Socle initial pour visualisation, historique et previsions sur Raspberry Pi 3.</p>
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Station locale</p>
+                <h1>{{ title }}</h1>
+            </div>
+            <div class="status-pill {{ 'ok' if mqtt_status.connected else 'off' }}">
+                MQTT {{ 'connecte' if mqtt_status.connected else 'hors ligne' }}
+            </div>
         </header>
 
-        <nav class="nav">
+        <nav class="nav nav-compact">
             {% for page in pages %}
-            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            <a class="nav-item {{ 'active' if page.id == 'overview' else '' }}" href="{{ page.href }}">{{ page.label }}</a>
             {% endfor %}
         </nav>
 
-        <section class="panel">
-            <h2>Etat MQTT</h2>
-            <p>
-                Agrege: {{ mqtt_status.aggregated_topic }} |
-                Brut: {{ mqtt_status.raw_topic }} |
-                Connecte: {{ mqtt_status.connected }} |
-                Dernier message: {{ mqtt_status.last_message_at or "aucun" }}
-            </p>
+        <section class="card-grid">
+            <article class="panel metric-panel">
+                <div class="panel-head">
+                    <h2>Temps reel</h2>
+                    <span>{{ latest_raw_at }}</span>
+                </div>
+                <div class="metrics">
+                    {% for card in raw_cards %}
+                    <div class="metric-box">
+                        <span class="metric-label">{{ card.label }}</span>
+                        <strong>{{ card.value }}</strong>
+                        <span class="metric-unit">{{ card.unit }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="panel metric-panel">
+                <div class="panel-head">
+                    <h2>Synthese</h2>
+                    <span>{{ latest_aggregated_at }}</span>
+                </div>
+                <div class="metrics">
+                    {% for card in aggregated_cards %}
+                    <div class="metric-box">
+                        <span class="metric-label">{{ card.label }}</span>
+                        <strong>{{ card.value }}</strong>
+                        <span class="metric-unit">{{ card.unit }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
         </section>
 
         <section class="panel">
-            <h2>Dernieres mesures</h2>
+            <div class="panel-head">
+                <h2>Dernieres mesures</h2>
+                <span>{{ compact_timestamp if false else '' }}</span>
+            </div>
+            <div class="table-wrap">
             {% if latest_readings %}
             <table>
                 <thead>
@@ -57,6 +89,7 @@
             {% else %}
             <p>Aucune mesure en base pour le moment.</p>
             {% endif %}
+            </div>
         </section>
     </main>
 </body>

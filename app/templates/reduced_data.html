@@ -9,14 +9,25 @@
 </head>
 <body>
     <main class="layout">
-        <nav class="nav">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Vue consolidee</p>
+                <h1>Donnees reduites</h1>
+            </div>
+            <div class="status-pill ok">Agrege</div>
+        </header>
+        <nav class="nav nav-compact">
             {% for page in pages %}
-            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            <a class="nav-item {{ 'active' if page.id == 'reduced-data' else '' }}" href="{{ page.href }}">{{ page.label }}</a>
             {% endfor %}
         </nav>
         <section class="panel">
-            <h1>Donnees reduites</h1>
+            <div class="panel-head">
+                <h2>Statistiques agregees</h2>
+                <span>Fenetre 60 s en test</span>
+            </div>
             {% if stats %}
+            <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
@@ -41,6 +52,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
             {% else %}
             <p>Pas encore assez de donnees pour agreger des statistiques.</p>
             {% endif %}

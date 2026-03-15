@@ -9,17 +9,42 @@
 </head>
 <body>
     <main class="layout">
-        <nav class="nav">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Flux MQTT</p>
+                <h1>Temps reel</h1>
+            </div>
+            <div class="status-pill ok">Brut</div>
+        </header>
+        <nav class="nav nav-compact">
             {% for page in pages %}
-            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            <a class="nav-item {{ 'active' if page.id == 'raw-data' else '' }}" href="{{ page.href }}">{{ page.label }}</a>
             {% endfor %}
         </nav>
+        <section class="panel metric-panel">
+            <div class="panel-head">
+                <h2>Dernier paquet brut</h2>
+                <span>{{ latest_raw_at }}</span>
+            </div>
+            <div class="metrics">
+                {% for card in raw_cards %}
+                <div class="metric-box">
+                    <span class="metric-label">{{ card.label }}</span>
+                    <strong>{{ card.value }}</strong>
+                    <span class="metric-unit">{{ card.unit }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
         <section class="panel">
-            <h1>Messages bruts</h1>
+            <div class="panel-head">
+                <h2>Messages bruts</h2>
+                <span>Topic {{ messages[0].topic if messages else '-' }}</span>
+            </div>
             {% if messages %}
             {% for message in messages %}
             <article class="message-card">
-                <p><strong>{{ message.recorded_at }}</strong> | {{ message.topic }} | {{ message.export_mode }}</p>
+                <p class="message-meta"><strong>{{ message.recorded_at }}</strong> | {{ message.topic }} | {{ message.export_mode }}</p>
                 <pre>{{ message.payload_json }}</pre>
             </article>
             {% endfor %}

@@ -9,13 +9,23 @@
 </head>
 <body>
     <main class="layout">
-        <nav class="nav">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Provider meteo</p>
+                <h1>Previsions</h1>
+            </div>
+            <div class="status-pill off">{{ forecast_provider }}</div>
+        </header>
+        <nav class="nav nav-compact">
             {% for page in pages %}
-            <a class="nav-item" href="{{ '/' if page == 'overview' else '/pages/' + page }}">{{ page }}</a>
+            <a class="nav-item {{ 'active' if page.id == 'forecast' else '' }}" href="{{ page.href }}">{{ page.label }}</a>
             {% endfor %}
         </nav>
         <section class="panel">
-            <h1>Previsions</h1>
+            <div class="panel-head">
+                <h2>Previsions</h2>
+                <span>Integration a venir</span>
+            </div>
             <p>Fournisseur configure: {{ forecast_provider }}</p>
             <p>Latitude: {{ latitude or "a definir" }} | Longitude: {{ longitude or "a definir" }}</p>
             <p>Cette page est prete pour brancher Open-Meteo en priorite.</p>
