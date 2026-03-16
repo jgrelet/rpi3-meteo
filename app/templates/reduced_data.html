@@ -34,6 +34,8 @@
                     <strong>{{ row.value }}</strong>
                     <span class="metric-unit">{{ row.unit }}</span>
                     <span class="metric-meta">Min {{ row.min_value }} | Max {{ row.max_value }}</span>
+                    <span class="metric-meta">Moy {{ row.mean_value }} | Med {{ row.median_value }}</span>
+                    <span class="metric-meta">Ecart-type {{ row.stddev_value }} | n {{ row.samples }}</span>
                 </div>
                 {% endfor %}
             </div>

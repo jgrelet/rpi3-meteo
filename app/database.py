@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import statistics
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -169,19 +170,11 @@ def fetch_latest_messages(limit: int = 20, export_mode: Optional[str] = None) ->
 
 def fetch_reduced_stats(export_mode: Optional[str] = "aggregated") -> List[Dict]:
     query = """
-    SELECT
-        sensor_name,
-        unit,
-        COUNT(*) AS samples,
-        ROUND(AVG(numeric_value), 2) AS avg_value,
-        ROUND(MIN(numeric_value), 2) AS min_value,
-        ROUND(MAX(numeric_value), 2) AS max_value,
-        MAX(recorded_at) AS last_seen
+    SELECT sensor_name, unit, numeric_value, recorded_at
     FROM sensor_readings
     WHERE numeric_value IS NOT NULL
     {mode_clause}
-    GROUP BY sensor_name, unit
-    ORDER BY sensor_name
+    ORDER BY sensor_name, recorded_at
     """
     mode_clause = ""
     params: Tuple = ()
@@ -191,4 +184,34 @@ def fetch_reduced_stats(export_mode: Optional[str] = "aggregated") -> List[Dict]
     with sqlite3.connect(DATABASE["path"]) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(query.format(mode_clause=mode_clause), params).fetchall()
-    return [dict(row) for row in rows]
+
+    grouped: Dict[Tuple[str, str], List[sqlite3.Row]] = {}
+    for row in rows:
+        key = (row["sensor_name"], row["unit"] or "")
+        grouped.setdefault(key, []).append(row)
+
+    stats: List[Dict] = []
+    for (sensor_name, unit), group_rows in grouped.items():
+        values = [float(row["numeric_value"]) for row in group_rows]
+        avg_value = round(statistics.mean(values), 3)
+        median_value = round(statistics.median(values), 3)
+        stddev_value = round(statistics.pstdev(values), 3) if len(values) > 1 else 0.0
+        min_value = round(min(values), 3)
+        max_value = round(max(values), 3)
+        stats.append(
+            {
+                "sensor_name": sensor_name,
+                "unit": unit,
+                "samples": len(values),
+                "avg_value": avg_value,
+                "mean_value": avg_value,
+                "median_value": median_value,
+                "stddev_value": stddev_value,
+                "min_value": min_value,
+                "max_value": max_value,
+                "last_seen": group_rows[-1]["recorded_at"],
+            }
+        )
+
+    stats.sort(key=lambda item: item["sensor_name"])
+    return stats
