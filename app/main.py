@@ -87,26 +87,24 @@ def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
 
 
 def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
-    primary = []
+    primary_by_sensor: Dict[str, Dict[str, str]] = {}
     secondary = []
     for row in stats:
         sensor_name = row["sensor_name"]
         if sensor_name in PRIMARY_REDUCED_METRICS:
             label, unit = PRIMARY_REDUCED_METRICS[sensor_name]
-            primary.append(
-                {
-                    "label": label,
-                    "value": str(row["avg_value"]),
-                    "unit": unit or row["unit"] or "",
-                    "mean_value": str(row["mean_value"]),
-                    "median_value": str(row["median_value"]),
-                    "stddev_value": str(row["stddev_value"]),
-                    "samples": str(row["samples"]),
-                    "min_value": str(row["min_value"]),
-                    "max_value": str(row["max_value"]),
-                    "last_seen": compact_timestamp(row["last_seen"]),
-                }
-            )
+            primary_by_sensor[sensor_name] = {
+                "label": label,
+                "value": str(row["avg_value"]),
+                "unit": unit or row["unit"] or "",
+                "mean_value": str(row["mean_value"]),
+                "median_value": str(row["median_value"]),
+                "stddev_value": str(row["stddev_value"]),
+                "samples": str(row["samples"]),
+                "min_value": str(row["min_value"]),
+                "max_value": str(row["max_value"]),
+                "last_seen": compact_timestamp(row["last_seen"]),
+            }
         elif sensor_name.startswith("aggregation_") or sensor_name in {"export_interval_seconds"}:
             continue
         else:
@@ -121,6 +119,11 @@ def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
                     "last_seen": compact_timestamp(row["last_seen"]),
                 }
             )
+    primary = [
+        primary_by_sensor[sensor_name]
+        for sensor_name in PRIMARY_REDUCED_METRICS
+        if sensor_name in primary_by_sensor
+    ]
     return {"primary": primary, "secondary": secondary}
 
 
