@@ -31,10 +31,10 @@ PAGE_LABELS = {
     "forecast-days": "4 jours",
 }
 PRIMARY_REDUCED_METRICS = {
-    "gas_kohms": ("Gaz", "kOhms"),
+    "temperature_c": ("Temperature", "C"),
     "humidity_pct": ("Humidite", "%"),
     "pressure_hpa": ("Pression", "hPa"),
-    "temperature_c": ("Temperature", "C"),
+    "gas_kohms": ("Gaz", "kOhms"),
     "wind_speed_kmh": ("Vent", "km/h"),
     "wind_dir_deg": ("Direction", "deg"),
     "rain_mm_total": ("Pluie", "mm"),
@@ -65,10 +65,10 @@ def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
         return []
     payload = json.loads(payload_json)
     keys = [
-        ("gas_kohms", "Gaz", "kOhms"),
+        ("temperature_c", "Temperature", "C"),
         ("humidity_pct", "Humidite", "%"),
         ("pressure_hpa", "Pression", "hPa"),
-        ("temperature_c", "Temperature", "C"),
+        ("gas_kohms", "Gaz", "kOhms"),
         ("wind_speed_kmh", "Vent", "km/h"),
         ("wind_dir_cardinal", "Direction", ""),
         ("rain_mm_total", "Pluie", "mm"),
