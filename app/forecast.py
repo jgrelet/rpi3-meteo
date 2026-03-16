@@ -159,7 +159,12 @@ def get_forecast() -> Dict:
 
     next_hours: List[Dict[str, str]] = []
     hourly_times = hourly.get("time", [])
-    for index, hour_value in enumerate(hourly_times[:6]):
+    current_time = current.get("time")
+    start_index = 0
+    if current_time in hourly_times:
+        start_index = hourly_times.index(current_time)
+    for index in range(start_index, min(start_index + 6, len(hourly_times))):
+        hour_value = hourly_times[index]
         next_hours.append(
             {
                 "time": _compact_hour(hour_value),
