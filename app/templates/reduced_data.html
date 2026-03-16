@@ -30,12 +30,11 @@
             <div class="metrics metrics-reduced">
                 {% for row in primary_stats %}
                 <div class="metric-box metric-box-large">
-                    <span class="metric-label">{{ row.label }}</span>
+                    <span class="metric-label">{{ row.label }}{% if row.unit %} ({{ row.unit }}){% endif %}</span>
                     <strong>{{ row.value }}</strong>
-                    <span class="metric-unit">{{ row.unit }}</span>
                     <span class="metric-meta">Min {{ row.min_value }} | Max {{ row.max_value }}</span>
-                    <span class="metric-meta">Moy {{ row.mean_value }} | Med {{ row.median_value }}</span>
-                    <span class="metric-meta">Ecart-type {{ row.stddev_value }} | n {{ row.samples }}</span>
+                    <span class="metric-meta">Moy {{ row.mean_value }} | Med {{ row.median_value }} | Ecart-type {{ row.stddev_value }}</span>
+                    <span class="metric-meta">n {{ row.samples }}</span>
                 </div>
                 {% endfor %}
             </div>
