@@ -161,8 +161,12 @@ def get_forecast() -> Dict:
     hourly_times = hourly.get("time", [])
     current_time = current.get("time")
     start_index = 0
-    if current_time in hourly_times:
-        start_index = hourly_times.index(current_time)
+    if current_time:
+        current_dt = datetime.fromisoformat(current_time)
+        for index, hour_value in enumerate(hourly_times):
+            if datetime.fromisoformat(hour_value) >= current_dt:
+                start_index = index
+                break
     for index in range(start_index, min(start_index + 6, len(hourly_times))):
         hour_value = hourly_times[index]
         next_hours.append(
