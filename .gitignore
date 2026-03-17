@@ -10,3 +10,4 @@ data/
 *.db
 *.sqlite3
 .env
+Todos.md

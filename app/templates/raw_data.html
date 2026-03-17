@@ -30,6 +30,9 @@
                 {% for card in raw_cards %}
                 <div class="metric-box">
                     <span class="metric-label">{{ card.label }}</span>
+                    {% if card.status_label %}
+                    <span class="air-badge air-badge-{{ card.status_class }}" title="{{ card.status_hint }}">{{ card.status_label }}</span>
+                    {% endif %}
                     <strong>{{ card.value }}</strong>
                     <span class="metric-unit">{{ card.unit }}</span>
                 </div>

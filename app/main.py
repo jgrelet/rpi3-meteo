@@ -60,6 +60,18 @@ def compact_timestamp(value: str | None) -> str:
     return value.replace("T", " ")[:19]
 
 
+def gas_quality(value: object) -> Dict[str, str] | None:
+    try:
+        gas_kohms = float(value)
+    except (TypeError, ValueError):
+        return None
+    if gas_kohms >= 25:
+        return {"label": "Bon", "class_name": "good", "hint": "Heuristique gaz eleve"}
+    if gas_kohms >= 12:
+        return {"label": "Moyen", "class_name": "medium", "hint": "Heuristique gaz intermediaire"}
+    return {"label": "Degrade", "class_name": "poor", "hint": "Heuristique gaz faible"}
+
+
 def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
     if not payload_json:
         return []
@@ -76,11 +88,15 @@ def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
     cards = []
     for key, label, unit in keys:
         if key in payload:
+            gas_status = gas_quality(payload[key]) if key == "gas_kohms" else None
             cards.append(
                 {
                     "label": label,
                     "value": str(payload[key]),
                     "unit": unit,
+                    "status_label": gas_status["label"] if gas_status else "",
+                    "status_class": gas_status["class_name"] if gas_status else "",
+                    "status_hint": gas_status["hint"] if gas_status else "",
                 }
             )
     return cards
@@ -93,6 +109,7 @@ def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
         sensor_name = row["sensor_name"]
         if sensor_name in PRIMARY_REDUCED_METRICS:
             label, unit = PRIMARY_REDUCED_METRICS[sensor_name]
+            gas_status = gas_quality(row["avg_value"]) if sensor_name == "gas_kohms" else None
             primary_by_sensor[sensor_name] = {
                 "label": label,
                 "value": str(row["avg_value"]),
@@ -104,6 +121,9 @@ def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
                 "min_value": str(row["min_value"]),
                 "max_value": str(row["max_value"]),
                 "last_seen": compact_timestamp(row["last_seen"]),
+                "status_label": gas_status["label"] if gas_status else "",
+                "status_class": gas_status["class_name"] if gas_status else "",
+                "status_hint": gas_status["hint"] if gas_status else "",
             }
         elif sensor_name.startswith("aggregation_") or sensor_name in {"export_interval_seconds"}:
             continue
