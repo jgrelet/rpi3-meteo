@@ -34,12 +34,8 @@
                 <div class="metrics">
                     {% for card in raw_cards %}
                     <div class="metric-box">
-                        <span class="metric-label">{{ card.label }}</span>
-                        {% if card.status_label %}
-                        <span class="air-badge air-badge-{{ card.status_class }}" title="{{ card.status_hint }}">{{ card.status_label }}</span>
-                        {% endif %}
-                        <strong>{{ card.value }}</strong>
-                        <span class="metric-unit">{{ card.unit }}</span>
+                        <span class="metric-label">{{ card.label }}{% if card.unit %} ({{ card.unit }}){% endif %}</span>
+                        <strong class="{% if card.status_class %}metric-value-{{ card.status_class }}{% endif %}"{% if card.status_hint %} title="{{ card.status_hint }}"{% endif %}>{{ card.value }}</strong>
                     </div>
                     {% endfor %}
                 </div>
@@ -53,12 +49,8 @@
                 <div class="metrics">
                     {% for card in aggregated_cards %}
                     <div class="metric-box">
-                        <span class="metric-label">{{ card.label }}</span>
-                        {% if card.status_label %}
-                        <span class="air-badge air-badge-{{ card.status_class }}" title="{{ card.status_hint }}">{{ card.status_label }}</span>
-                        {% endif %}
-                        <strong>{{ card.value }}</strong>
-                        <span class="metric-unit">{{ card.unit }}</span>
+                        <span class="metric-label">{{ card.label }}{% if card.unit %} ({{ card.unit }}){% endif %}</span>
+                        <strong class="{% if card.status_class %}metric-value-{{ card.status_class }}{% endif %}"{% if card.status_hint %} title="{{ card.status_hint }}"{% endif %}>{{ card.value }}</strong>
                     </div>
                     {% endfor %}
                 </div>

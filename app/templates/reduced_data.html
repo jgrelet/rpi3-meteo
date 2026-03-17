@@ -31,10 +31,7 @@
                 {% for row in primary_stats %}
                 <div class="metric-box metric-box-large">
                     <span class="metric-label">{{ row.label }}{% if row.unit %} ({{ row.unit }}){% endif %}</span>
-                    {% if row.status_label %}
-                    <span class="air-badge air-badge-{{ row.status_class }}" title="{{ row.status_hint }}">{{ row.status_label }}</span>
-                    {% endif %}
-                    <strong>{{ row.value }}</strong>
+                    <strong class="{% if row.status_class %}metric-value-{{ row.status_class }}{% endif %}"{% if row.status_hint %} title="{{ row.status_hint }}"{% endif %}>{{ row.value }}</strong>
                     <span class="metric-meta">Min {{ row.min_value }} | Max {{ row.max_value }}</span>
                     <span class="metric-meta">Moy {{ row.mean_value }} | Med {{ row.median_value }} | Ecart-type {{ row.stddev_value }} | n {{ row.samples }}</span>
                 </div>

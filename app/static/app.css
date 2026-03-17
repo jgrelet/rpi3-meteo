@@ -354,32 +354,16 @@ pre {
     font-size: 0.82rem;
 }
 
-.air-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 22px;
-    margin: 4px 0 2px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    width: fit-content;
-}
-
-.air-badge-good {
-    background: rgba(46, 125, 50, 0.14);
+.metric-value-good {
     color: #285f2b;
 }
 
-.air-badge-medium {
-    background: rgba(227, 145, 23, 0.16);
-    color: #8a5310;
+.metric-value-medium {
+    color: #b46a12;
 }
 
-.air-badge-poor {
-    background: rgba(183, 28, 28, 0.14);
-    color: #8c1d18;
+.metric-value-poor {
+    color: #b3261e;
 }
 
 @media (max-width: 768px) {
