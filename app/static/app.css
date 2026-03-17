@@ -366,6 +366,12 @@ pre {
     color: #b3261e;
 }
 
+.metric-status {
+    font-size: 0.72em;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 @media (max-width: 768px) {
     .layout {
         padding: 6px;
