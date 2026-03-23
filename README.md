@@ -37,6 +37,15 @@ Exemple de payload :
 }
 ```
 
+Si le payload contient `gas_kohms` et `humidity_pct`, l'application enrichit automatiquement le message avec un score heuristique local :
+
+- `air_quality_relative_pct`
+- `air_quality_relative_label`
+- `air_quality_relative_ready`
+- `air_quality_relative_baseline_kohms`
+
+Ce score est volontairement un indicateur relatif local base sur le BME680. Ce n'est ni un AQI standard, ni un IAQ Bosch BSEC.
+
 Des messages de test peuvent etre publies avec :
 
 ```bash
@@ -63,6 +72,7 @@ Parametres a adapter en priorite :
 - `INGESTION["mqtt"]["raw_topic"]` et `INGESTION["mqtt"]["aggregated_topic"]` pour rester aligne avec `weather_web_sensors`
 - `UI["refresh_seconds"]` selon la frequence voulue sur l'ecran tactile
 - `DATABASE["path"]` si tu veux deplacer la base SQLite
+- `AIR_QUALITY["enabled"]` et les variables `RPI3_METEO_AIR_QUALITY_*` si tu veux ajuster ou desactiver le score relatif
 
 ## Demarrage local
 

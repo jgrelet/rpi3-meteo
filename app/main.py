@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from contextlib import asynccontextmanager
 from typing import Dict, List, Union
 
@@ -22,6 +23,7 @@ from app.mqtt_ingestion import MqttIngestionService
 
 templates = Jinja2Templates(directory="app/templates")
 mqtt_service = MqttIngestionService()
+logger = logging.getLogger(__name__)
 PAGE_LABELS = {
     "overview": "Accueil",
     "raw-data": "Temps reel",
@@ -35,6 +37,7 @@ PRIMARY_REDUCED_METRICS = {
     "humidity_pct": ("Humidite", "%"),
     "pressure_hpa": ("Pression", "hPa"),
     "gas_kohms": ("Gaz", "kOhms"),
+    "air_quality_relative_pct": ("Qualite air relative", "%"),
     "wind_speed_kmh": ("Vent", "km/h"),
     "wind_dir_deg": ("Direction", "deg"),
     "rain_mm_total": ("Pluie", "mm"),
@@ -57,7 +60,7 @@ def nav_pages() -> List[Dict[str, str]]:
 def compact_timestamp(value: str | None) -> str:
     if not value:
         return "-"
-    return value.replace("T", " ")[:19]
+    return str(value).replace("T", " ")[:19]
 
 
 def gas_quality(value: object) -> Dict[str, str] | None:
@@ -72,15 +75,37 @@ def gas_quality(value: object) -> Dict[str, str] | None:
     return {"label": "Degrade", "class_name": "poor", "hint": "Heuristique gaz faible"}
 
 
+def relative_air_quality_status(value: object) -> Dict[str, str] | None:
+    try:
+        score_pct = float(value)
+    except (TypeError, ValueError):
+        return None
+    if score_pct >= 80:
+        return {"label": "Bon", "class_name": "good", "hint": "Score relatif local"}
+    if score_pct >= 60:
+        return {"label": "Correct", "class_name": "medium", "hint": "Score relatif local"}
+    if score_pct >= 40:
+        return {"label": "Moyen", "class_name": "medium", "hint": "Score relatif local"}
+    return {"label": "Degrade", "class_name": "poor", "hint": "Score relatif local"}
+
+
 def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
     if not payload_json:
         return []
-    payload = json.loads(payload_json)
+    try:
+        payload = json.loads(payload_json)
+    except (TypeError, ValueError) as exc:
+        logger.warning("Unable to decode payload_json for metric cards: %s", exc)
+        return []
+    if not isinstance(payload, dict):
+        logger.warning("Ignoring non-object payload for metric cards: %r", type(payload).__name__)
+        return []
     keys = [
         ("temperature_c", "Temperature", "C"),
         ("humidity_pct", "Humidite", "%"),
         ("pressure_hpa", "Pression", "hPa"),
         ("gas_kohms", "Gaz", "kOhms"),
+        ("air_quality_relative_pct", "Qualite air relative", "%"),
         ("wind_speed_kmh", "Vent", "km/h"),
         ("wind_dir_cardinal", "Direction", ""),
         ("rain_mm_total", "Pluie", "mm"),
@@ -89,17 +114,68 @@ def metric_cards_from_payload(payload_json: str | None) -> List[Dict[str, str]]:
     for key, label, unit in keys:
         if key in payload:
             gas_status = gas_quality(payload[key]) if key == "gas_kohms" else None
+            relative_status = (
+                relative_air_quality_status(payload[key])
+                if key == "air_quality_relative_pct"
+                else None
+            )
+            status = relative_status or gas_status
             cards.append(
                 {
                     "label": label,
                     "value": str(payload[key]),
                     "unit": unit,
-                    "status_label": gas_status["label"] if gas_status else "",
-                    "status_class": gas_status["class_name"] if gas_status else "",
-                    "status_hint": gas_status["hint"] if gas_status else "",
+                    "status_label": status["label"] if status else "",
+                    "status_class": status["class_name"] if status else "",
+                    "status_hint": status["hint"] if status else "",
                 }
             )
     return cards
+
+
+def template_context(request: Request) -> Dict[str, object]:
+    return {
+        "request": request,
+        "title": UI["title"],
+        "refresh_seconds": UI["refresh_seconds"],
+        "pages": nav_pages(),
+    }
+
+
+def render_error_page(request: Request, title: str, detail: str) -> HTMLResponse:
+    return HTMLResponse(
+        """
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta http-equiv="refresh" content="{refresh_seconds}">
+            <title>{title}</title>
+            <link rel="stylesheet" href="/static/app.css">
+        </head>
+        <body>
+            <main class="layout">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h1>{title}</h1>
+                        <span>Mode degrade</span>
+                    </div>
+                    <p>{detail}</p>
+                    <p>La page va se recharger automatiquement.</p>
+                    <p><a href="{path}">Recharger maintenant</a></p>
+                </section>
+            </main>
+        </body>
+        </html>
+        """.format(
+            refresh_seconds=UI["refresh_seconds"],
+            title=title,
+            detail=detail,
+            path=request.url.path,
+        ),
+        status_code=503,
+    )
 
 
 def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
@@ -110,6 +186,12 @@ def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
         if sensor_name in PRIMARY_REDUCED_METRICS:
             label, unit = PRIMARY_REDUCED_METRICS[sensor_name]
             gas_status = gas_quality(row["avg_value"]) if sensor_name == "gas_kohms" else None
+            relative_status = (
+                relative_air_quality_status(row["avg_value"])
+                if sensor_name == "air_quality_relative_pct"
+                else None
+            )
+            status = relative_status or gas_status
             primary_by_sensor[sensor_name] = {
                 "label": label,
                 "value": str(row["avg_value"]),
@@ -121,9 +203,9 @@ def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
                 "min_value": str(row["min_value"]),
                 "max_value": str(row["max_value"]),
                 "last_seen": compact_timestamp(row["last_seen"]),
-                "status_label": gas_status["label"] if gas_status else "",
-                "status_class": gas_status["class_name"] if gas_status else "",
-                "status_hint": gas_status["hint"] if gas_status else "",
+                "status_label": status["label"] if status else "",
+                "status_class": status["class_name"] if status else "",
+                "status_hint": status["hint"] if status else "",
             }
         elif sensor_name.startswith("aggregation_") or sensor_name in {"export_interval_seconds"}:
             continue
@@ -161,24 +243,31 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def overview(request: Request) -> HTMLResponse:
-    latest_readings = fetch_latest_readings(export_mode="aggregated")
-    if not latest_readings:
-        latest_readings = fetch_latest_readings(export_mode="raw")
-    latest_raw = fetch_latest_messages(limit=1, export_mode="raw")
-    latest_aggregated = fetch_latest_messages(limit=1, export_mode="aggregated")
-    context = {
-        "request": request,
-        "title": UI["title"],
-        "refresh_seconds": UI["refresh_seconds"],
-        "pages": nav_pages(),
-        "latest_readings": latest_readings,
-        "raw_cards": metric_cards_from_payload(latest_raw[0]["payload_json"]) if latest_raw else [],
-        "aggregated_cards": metric_cards_from_payload(latest_aggregated[0]["payload_json"]) if latest_aggregated else [],
-        "latest_raw_at": compact_timestamp(latest_raw[0]["recorded_at"]) if latest_raw else "-",
-        "latest_aggregated_at": compact_timestamp(latest_aggregated[0]["recorded_at"]) if latest_aggregated else "-",
-        "mqtt_status": mqtt_service.status(),
-    }
-    return templates.TemplateResponse("overview.html", context)
+    try:
+        latest_readings = fetch_latest_readings(export_mode="aggregated")
+        if not latest_readings:
+            latest_readings = fetch_latest_readings(export_mode="raw")
+        latest_raw = fetch_latest_messages(limit=1, export_mode="raw")
+        latest_aggregated = fetch_latest_messages(limit=1, export_mode="aggregated")
+        context = template_context(request)
+        context.update(
+            {
+                "latest_readings": latest_readings,
+                "raw_cards": metric_cards_from_payload(latest_raw[0]["payload_json"]) if latest_raw else [],
+                "aggregated_cards": metric_cards_from_payload(latest_aggregated[0]["payload_json"]) if latest_aggregated else [],
+                "latest_raw_at": compact_timestamp(latest_raw[0]["recorded_at"]) if latest_raw else "-",
+                "latest_aggregated_at": compact_timestamp(latest_aggregated[0]["recorded_at"]) if latest_aggregated else "-",
+                "mqtt_status": mqtt_service.status(),
+            }
+        )
+        return templates.TemplateResponse("overview.html", context)
+    except Exception:
+        logger.exception("Failed to render overview page")
+        return render_error_page(
+            request,
+            UI["title"],
+            "Une erreur temporaire s'est produite pendant le chargement des donnees meteo.",
+        )
 
 
 @app.get("/health")
@@ -193,47 +282,62 @@ async def health() -> Dict[str, Union[str, bool]]:
 @app.get("/pages/{page_name}")
 async def page_placeholder(request: Request, page_name: str):
     if page_name == "raw-data":
-        messages = fetch_latest_messages(export_mode="raw")
-        return templates.TemplateResponse(
-            "raw_data.html",
-            {
-                "request": request,
-                "title": UI["title"],
-                "refresh_seconds": UI["refresh_seconds"],
-                "pages": nav_pages(),
-                "messages": messages,
-                "raw_cards": metric_cards_from_payload(messages[0]["payload_json"]) if messages else [],
-                "latest_raw_at": compact_timestamp(messages[0]["recorded_at"]) if messages else "-",
-            },
-        )
+        try:
+            messages = fetch_latest_messages(export_mode="raw")
+            context = template_context(request)
+            context.update(
+                {
+                    "messages": messages,
+                    "raw_cards": metric_cards_from_payload(messages[0]["payload_json"]) if messages else [],
+                    "latest_raw_at": compact_timestamp(messages[0]["recorded_at"]) if messages else "-",
+                }
+            )
+            return templates.TemplateResponse("raw_data.html", context)
+        except Exception:
+            logger.exception("Failed to render raw-data page")
+            return render_error_page(
+                request,
+                UI["title"],
+                "Les messages MQTT bruts sont temporairement indisponibles.",
+            )
     if page_name == "reduced-data":
-        stats = fetch_reduced_stats(export_mode="aggregated")
-        split_stats = split_reduced_stats(stats)
-        return templates.TemplateResponse(
-            "reduced_data.html",
-            {
-                "request": request,
-                "title": UI["title"],
-                "refresh_seconds": UI["refresh_seconds"],
-                "pages": nav_pages(),
-                "primary_stats": split_stats["primary"],
-                "secondary_stats": split_stats["secondary"],
-            },
-        )
+        try:
+            stats = fetch_reduced_stats(export_mode="aggregated")
+            split_stats = split_reduced_stats(stats)
+            context = template_context(request)
+            context.update(
+                {
+                    "primary_stats": split_stats["primary"],
+                    "secondary_stats": split_stats["secondary"],
+                }
+            )
+            return templates.TemplateResponse("reduced_data.html", context)
+        except Exception:
+            logger.exception("Failed to render reduced-data page")
+            return render_error_page(
+                request,
+                UI["title"],
+                "Les statistiques reduites sont temporairement indisponibles.",
+            )
     if page_name in {"forecast", "forecast-now", "forecast-hours", "forecast-days"}:
-        forecast = get_forecast()
-        return templates.TemplateResponse(
-            "forecast.html",
-            {
-                "request": request,
-                "title": UI["title"],
-                "refresh_seconds": UI["refresh_seconds"],
-                "pages": nav_pages(),
-                "forecast_provider": APP_CONFIG["default_forecast_provider"],
-                "latitude": APP_CONFIG["latitude"],
-                "longitude": APP_CONFIG["longitude"],
-                "forecast": forecast,
-                "forecast_page": "forecast-now" if page_name == "forecast" else page_name,
-            },
-        )
+        try:
+            forecast = get_forecast()
+            context = template_context(request)
+            context.update(
+                {
+                    "forecast_provider": APP_CONFIG["default_forecast_provider"],
+                    "latitude": APP_CONFIG["latitude"],
+                    "longitude": APP_CONFIG["longitude"],
+                    "forecast": forecast,
+                    "forecast_page": "forecast-now" if page_name == "forecast" else page_name,
+                }
+            )
+            return templates.TemplateResponse("forecast.html", context)
+        except Exception:
+            logger.exception("Failed to render forecast page")
+            return render_error_page(
+                request,
+                UI["title"],
+                "La prevision meteo externe est temporairement indisponible.",
+            )
     return {"page": page_name, "status": "todo"}

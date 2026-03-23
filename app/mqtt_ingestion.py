@@ -7,6 +7,8 @@ from typing import Dict, Optional, Union
 
 from paho.mqtt import client as mqtt_client
 
+from app.air_quality import air_quality_estimator
+from app.config import AIR_QUALITY
 from app.config import INGESTION
 from app.database import store_payload
 
@@ -84,6 +86,8 @@ class MqttIngestionService:
             payload = json.loads(message.payload.decode("utf-8"))
             if not isinstance(payload, dict):
                 raise ValueError("payload is not a JSON object")
+            if AIR_QUALITY["enabled"]:
+                payload = air_quality_estimator.enrich_payload(payload)
             store_payload(
                 source="weather_web_sensors",
                 channel="mqtt",

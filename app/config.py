@@ -31,6 +31,20 @@ DATABASE = {
     "path": os.getenv("RPI3_METEO_DB_PATH", str(DATA_DIR / "weather.db")),
 }
 
+AIR_QUALITY = {
+    "enabled": os.getenv("RPI3_METEO_AIR_QUALITY_ENABLED", "true").lower() == "true",
+    "state_path": os.getenv(
+        "RPI3_METEO_AIR_QUALITY_STATE_PATH",
+        str(DATA_DIR / "air_quality_state.json"),
+    ),
+    "burn_in_samples": int(os.getenv("RPI3_METEO_AIR_QUALITY_BURN_IN_SAMPLES", "50")),
+    "baseline_window": int(os.getenv("RPI3_METEO_AIR_QUALITY_BASELINE_WINDOW", "50")),
+    "humidity_baseline_pct": float(os.getenv("RPI3_METEO_AIR_QUALITY_HUMIDITY_BASELINE_PCT", "40")),
+    "humidity_weighting": float(os.getenv("RPI3_METEO_AIR_QUALITY_HUMIDITY_WEIGHTING", "0.25")),
+    "baseline_adaptation_rate": float(os.getenv("RPI3_METEO_AIR_QUALITY_BASELINE_ADAPTATION_RATE", "0.03")),
+    "score_smoothing": float(os.getenv("RPI3_METEO_AIR_QUALITY_SCORE_SMOOTHING", "0.2")),
+}
+
 INGESTION = {
     "default_channel": "mqtt",
     "mqtt": {

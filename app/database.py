@@ -63,6 +63,7 @@ def _guess_unit(sensor_name: str) -> Optional[str]:
         "_temperature_c": "C",
         "_pressure_hpa": "hPa",
         "_humidity_pct": "%",
+        "_relative_pct": "%",
         "_speed_kmh": "km/h",
         "_gas_kohms": "kOhms",
         "_rain_mm": "mm",
