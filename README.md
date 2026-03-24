@@ -5,7 +5,7 @@ Weather dashboard designed for a Raspberry Pi 3.
 The project combines:
 
 - a `FastAPI` backend
-- local `SQLite` storage
+- `PostgreSQL` storage
 - MQTT-based sensor ingestion
 - a touchscreen-friendly local UI
 - forecast pages backed by weather providers such as `Open-Meteo`
@@ -74,9 +74,11 @@ Settings to review first:
 - `RPI3_METEO_MQTT_BROKER` to point to the Raspberry Pi broker or a remote broker
 - `RPI3_METEO_MQTT_RAW_TOPIC` and `RPI3_METEO_MQTT_AGGREGATED_TOPIC` to stay aligned with `weather_web_sensors`
 - `RPI3_METEO_UI_REFRESH_SECONDS` for screen refresh cadence
-- `RPI3_METEO_DB_PATH` if you want to move the SQLite database
+- `RPI3_METEO_DB_HOST`, `RPI3_METEO_DB_PORT`, `RPI3_METEO_DB_NAME`, `RPI3_METEO_DB_USER`, `RPI3_METEO_DB_PASSWORD` for PostgreSQL access
 - `RPI3_METEO_DB_ENABLED`, `RPI3_METEO_DB_STORE_RAW_MESSAGES`, and `RPI3_METEO_DB_STORE_SENSOR_READINGS` to control persistence
 - `RPI3_METEO_AIR_QUALITY_ENABLED` and the `RPI3_METEO_AIR_QUALITY_*` variables to tune or disable the relative air quality score
+
+Database credentials can be replaced with your own secret values in `.env`. Keep `.env` out of version control and do not commit real passwords.
 
 ## Local development
 
@@ -111,6 +113,44 @@ cp .env.generic .env
 docker compose up --build
 ```
 
+For local development on WSL with Docker Desktop, you can also use:
+
+```bash
+chmod +x scripts/deploy_dev.sh
+./scripts/deploy_dev.sh
+```
+
+If port `8000` is already in use on your workstation, set a different host port in `.env`, for example:
+
+```bash
+RPI3_METEO_WEB_PORT=8001
+```
+
+Typical local dev test flow on WSL:
+
+1. Start the stack locally:
+
+```bash
+./scripts/deploy_dev.sh
+```
+
+2. Open the app in a browser:
+
+```text
+http://127.0.0.1:8000
+```
+
+or the port defined by `RPI3_METEO_WEB_PORT`.
+
+3. If the Pico is still publishing to the Raspberry Pi IP instead of your PC, no MQTT data will reach the local WSL stack. In that case, publish local sample messages to validate the full chain:
+
+```bash
+python tools/publish_test_payload.py --host 127.0.0.1 --export-mode raw
+python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
+```
+
+4. Refresh the dashboard and confirm that the realtime cards and recent measurements are populated.
+
 ## Docker on WSL and Raspberry Pi 3
 
 Recommended workflow:
@@ -139,9 +179,11 @@ That build check is useful, but it does not replace a real Pi 3 validation for m
 The deployment target is fully containerized:
 
 - `mosquitto` runs in `docker compose`
+- `postgres` runs in `docker compose`
 - the web app runs in `docker compose`
 - MQTT persistence uses Docker volumes
-- SQLite persistence uses the repository `./data` directory
+- PostgreSQL persistence uses a Docker volume
+- local auxiliary files such as the air-quality state stay in the repository `./data` directory
 
 Provided files:
 
@@ -154,9 +196,12 @@ Runtime notes:
 
 - the Pico publishes to the Pi IP on port `1883`
 - that port is exposed by the `mosquitto` container
+- PostgreSQL is exposed on port `5432` so a remote WSL script can query the database
 - the `web` container connects to the broker through the Docker service name `mosquitto`
-- SQLite data is stored in `./data/weather.db` on the host
+- the `web` container connects to PostgreSQL through the Docker service name `postgres`
+- PostgreSQL data is stored in the `postgres_data` volume
 - Mosquitto data is stored in the `mosquitto_data` and `mosquitto_log` volumes
+- local state files are stored in `./data`
 - personal and location-specific values are read from `.env`
 
 Recommended preparation:
@@ -175,8 +220,8 @@ Then edit `.env` and set at least:
 Quick test with sample messages:
 
 ```bash
-.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode raw
-.venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
+python tools/publish_test_payload.py --host 127.0.0.1 --export-mode raw
+python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
 ```
 
 To inspect messages handled by the containerized broker:
@@ -184,6 +229,56 @@ To inspect messages handled by the containerized broker:
 ```bash
 docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
 ```
+
+To inspect PostgreSQL data from the Raspberry Pi host:
+
+```bash
+docker exec -it rpi3-meteo-postgres psql -U "$RPI3_METEO_DB_USER" -d "$RPI3_METEO_DB_NAME" -c 'select count(*) from raw_messages;'
+docker exec -it rpi3-meteo-postgres psql -U "$RPI3_METEO_DB_USER" -d "$RPI3_METEO_DB_NAME" -c 'select count(*) from sensor_readings;'
+```
+
+Available PostgreSQL views created by the app:
+
+- `latest_sensor_values`: latest value per `source/channel/export_mode/sensor_name`
+- `sensor_series_numeric`: numeric time series with precomputed hour/day buckets
+- `hourly_sensor_stats`: hourly aggregates ready for plotting or reporting
+
+## Remote plotting from WSL
+
+The repository now includes [tools/plot_remote_postgres.py](/home/jgrelet/git/Python/rpi3-meteo/tools/plot_remote_postgres.py), a dedicated script to query a remote PostgreSQL instance and produce time-series plots with `matplotlib` and `numpy`.
+
+It is intentionally separate from the web app runtime so the Docker image does not need the plotting stack.
+
+Install the plotting dependencies on WSL with `conda` and `mamba`:
+
+```bash
+conda activate ilizou
+mamba install -c conda-forge psycopg matplotlib numpy
+```
+
+Example against the Raspberry Pi database:
+
+```bash
+python tools/plot_remote_postgres.py \
+  --host 192.168.1.42 \
+  --port 5432 \
+  --dbname rpi3_meteo \
+  --user rpi3_meteo \
+  --password rpi3_meteo \
+  --hours 48 \
+  --export-mode aggregated \
+  --sensors temperature_c humidity_pct pressure_hpa wind_speed_kmh rain_mm_total \
+  --out plots/rpi3-meteo-48h.png
+```
+
+The script supports:
+
+- `--hours` to define the time window
+- `--sensors` to choose which series to plot
+- `--export-mode raw|aggregated`
+- `--resolution hourly|raw` to choose hourly aggregates or raw samples
+- `--source` and `--channel` to narrow the query
+- `--show` to display the figure interactively
 
 ## Test redeploy on Raspberry Pi 3
 

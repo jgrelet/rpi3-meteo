@@ -16,7 +16,7 @@ DEFAULT_UI_PAGES: List[str] = [
 ALLOWED_UI_PAGES: Set[str] = set(DEFAULT_UI_PAGES)
 ALLOWED_FORECAST_PROVIDERS: Set[str] = {"open-meteo", "openweather"}
 ALLOWED_SCREEN_MODES: Set[str] = {"kiosk", "windowed"}
-ALLOWED_DB_ENGINES: Set[str] = {"sqlite"}
+ALLOWED_DB_ENGINES: Set[str] = {"postgresql"}
 ALLOWED_CHANNELS: Set[str] = {"mqtt", "serial", "udp"}
 
 
@@ -122,10 +122,14 @@ APP_CONFIG = {
 DATABASE = {
     "engine": _require_choice(
         "RPI3_METEO_DB_ENGINE",
-        env_str("RPI3_METEO_DB_ENGINE", "sqlite"),
+        env_str("RPI3_METEO_DB_ENGINE", "postgresql"),
         ALLOWED_DB_ENGINES,
     ),
-    "path": env_str("RPI3_METEO_DB_PATH", str(DATA_DIR / "weather.db")),
+    "host": env_str("RPI3_METEO_DB_HOST", "postgres"),
+    "port": _require_positive_int("RPI3_METEO_DB_PORT", env_int("RPI3_METEO_DB_PORT", 5432)),
+    "name": env_str("RPI3_METEO_DB_NAME", "rpi3_meteo"),
+    "user": env_str("RPI3_METEO_DB_USER", "rpi3_meteo"),
+    "password": env_str("RPI3_METEO_DB_PASSWORD", "rpi3_meteo"),
     "enabled": env_bool("RPI3_METEO_DB_ENABLED", True),
     "store_raw_messages": env_bool("RPI3_METEO_DB_STORE_RAW_MESSAGES", True),
     "store_sensor_readings": env_bool("RPI3_METEO_DB_STORE_SENSOR_READINGS", True),
