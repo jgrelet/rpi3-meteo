@@ -64,6 +64,7 @@ docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weat
 Le fichier actif est `app/config.py`.
 Un exemple de reference est disponible dans `app/config.example.py`.
 Les variables d'instance et de localisation doivent etre definies dans un fichier `.env` local non versionne, a partir de `.env.generic`.
+Une valeur invalide dans `.env` bloque maintenant le demarrage avec une erreur explicite plutot que d'etre acceptee silencieusement.
 
 Parametres a adapter en priorite :
 
