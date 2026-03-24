@@ -13,4 +13,4 @@ COPY tools ./tools
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host ${RPI3_METEO_HOST:-0.0.0.0} --port ${RPI3_METEO_PORT:-8000}"]

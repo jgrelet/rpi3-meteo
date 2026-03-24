@@ -96,6 +96,8 @@ def _normalize_payload(payload: Dict) -> List[Tuple[str, Optional[float], Option
 
 
 def init_db() -> None:
+    if not DATABASE.get("enabled", True):
+        return
     db_path = Path(DATABASE["path"])
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
@@ -106,28 +108,38 @@ def init_db() -> None:
 
 
 def store_payload(source: str, channel: str, topic: Optional[str], payload: Dict, recorded_at: str) -> None:
+    if not DATABASE.get("enabled", True):
+        return
+
+    store_raw_messages = DATABASE.get("store_raw_messages", True)
+    store_sensor_readings = DATABASE.get("store_sensor_readings", True)
+    if not store_raw_messages and not store_sensor_readings:
+        return
+
     rows = _normalize_payload(payload)
     export_mode = str(payload.get("export_mode") or ("raw" if topic and topic.endswith("/raw") else "aggregated"))
     with _connect_sync() as connection:
-        connection.execute(
-            """
-            INSERT INTO raw_messages(source, channel, export_mode, topic, payload_json, recorded_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (source, channel, export_mode, topic, json.dumps(payload), recorded_at),
-        )
-        connection.executemany(
-            """
-            INSERT INTO sensor_readings(
-                source, channel, export_mode, sensor_name, numeric_value, text_value, unit, recorded_at
+        if store_raw_messages:
+            connection.execute(
+                """
+                INSERT INTO raw_messages(source, channel, export_mode, topic, payload_json, recorded_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (source, channel, export_mode, topic, json.dumps(payload), recorded_at),
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            [
-                (source, channel, export_mode, sensor_name, numeric_value, text_value, unit, recorded_at)
-                for sensor_name, numeric_value, text_value, unit in rows
-            ],
-        )
+        if store_sensor_readings and rows:
+            connection.executemany(
+                """
+                INSERT INTO sensor_readings(
+                    source, channel, export_mode, sensor_name, numeric_value, text_value, unit, recorded_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (source, channel, export_mode, sensor_name, numeric_value, text_value, unit, recorded_at)
+                    for sensor_name, numeric_value, text_value, unit in rows
+                ],
+            )
         connection.commit()
 
 

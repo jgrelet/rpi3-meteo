@@ -21,10 +21,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - sqlite_data:/app/data
+      - ./data:/app/data
     restart: unless-stopped
-
 volumes:
   mosquitto_data:
   mosquitto_log:
-  sqlite_data:

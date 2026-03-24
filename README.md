@@ -72,6 +72,7 @@ Parametres a adapter en priorite :
 - `INGESTION["mqtt"]["raw_topic"]` et `INGESTION["mqtt"]["aggregated_topic"]` pour rester aligne avec `weather_web_sensors`
 - `UI["refresh_seconds"]` selon la frequence voulue sur l'ecran tactile
 - `DATABASE["path"]` si tu veux deplacer la base SQLite
+- `DATABASE["enabled"]`, `DATABASE["store_raw_messages"]` et `DATABASE["store_sensor_readings"]` pour piloter l'enregistrement progressif des acquisitions
 - `AIR_QUALITY["enabled"]` et les variables `RPI3_METEO_AIR_QUALITY_*` si tu veux ajuster ou desactiver le score relatif
 
 ## Demarrage local
@@ -136,7 +137,7 @@ La cible de deploiement est maintenant entierement conteneurisee :
 
 - `mosquitto` tourne dans `docker compose`
 - l'application web tourne dans `docker compose`
-- la persistance MQTT et SQLite est geree par des volumes Docker
+- la persistance MQTT est geree par des volumes Docker, et SQLite par le dossier `./data` du depot
 
 Configuration fournie :
 
@@ -150,7 +151,7 @@ Notes de fonctionnement :
 - le Pico publie sur l'IP du Pi, port `1883`
 - ce port est expose par le conteneur `mosquitto`
 - le conteneur `web` se connecte au broker via le nom de service Docker `mosquitto`
-- les donnees SQLite sont conservees dans le volume Docker `sqlite_data`
+- les donnees SQLite sont conservees dans `./data/weather.db` sur l'hote
 - les donnees Mosquitto sont conservees dans les volumes `mosquitto_data` et `mosquitto_log`
 - les variables personnelles et de localisation sont lues depuis `.env`
 
