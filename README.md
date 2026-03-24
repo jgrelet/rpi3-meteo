@@ -1,29 +1,29 @@
 # rpi3-meteo
 
-Application de visualisation meteo ciblee pour Raspberry Pi 3.
+Weather dashboard designed for a Raspberry Pi 3.
 
-## Premiere base
+The project combines:
 
-- backend `FastAPI`
-- stockage local `SQLite`
-- ingestion prevue d'abord via `MQTT`
-- affichage local compatible ecran tactile 7 pouces
-- previsions a brancher ensuite via `Open-Meteo`
+- a `FastAPI` backend
+- local `SQLite` storage
+- MQTT-based sensor ingestion
+- a touchscreen-friendly local UI
+- forecast pages backed by weather providers such as `Open-Meteo`
 
-Les previsions sont exposees sur trois pages dediees pour limiter le scrolling sur petit ecran :
+Forecasts are split across three dedicated pages to reduce scrolling on a small display:
 
 - `/pages/forecast-now`
 - `/pages/forecast-hours`
 - `/pages/forecast-days`
 
-## Contrat MQTT
+## MQTT contract
 
-Le projet consomme les messages JSON publies par `weather_web_sensors` sur deux topics :
+The application consumes JSON messages published by `weather_web_sensors` on two topics:
 
-- `weather/sensors/raw` pour les acquisitions brutes
-- `weather/sensors` pour les snapshots agreges
+- `weather/sensors/raw` for raw acquisitions
+- `weather/sensors` for aggregated snapshots
 
-Exemple de payload :
+Example payload:
 
 ```json
 {
@@ -37,46 +37,48 @@ Exemple de payload :
 }
 ```
 
-Si le payload contient `gas_kohms` et `humidity_pct`, l'application enrichit automatiquement le message avec un score heuristique local :
+If the payload includes both `gas_kohms` and `humidity_pct`, the app automatically enriches it with a local heuristic score:
 
 - `air_quality_relative_pct`
 - `air_quality_relative_label`
 - `air_quality_relative_ready`
 - `air_quality_relative_baseline_kohms`
 
-Ce score est volontairement un indicateur relatif local base sur le BME680. Ce n'est ni un AQI standard, ni un IAQ Bosch BSEC.
+This score is intentionally a local relative indicator derived from the BME680. It is not a standard AQI and not Bosch BSEC IAQ.
 
-Des messages de test peuvent etre publies avec :
+Publish test messages with:
 
 ```bash
 .venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode raw
 .venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
 ```
 
-Pour observer les deux flux MQTT dans la stack Docker :
+To inspect both MQTT flows inside the Docker stack:
 
 ```bash
 docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
 ```
 
-## Configuration de l'application
+## Configuration
 
-Le fichier actif est `app/config.py`.
-Un exemple de reference est disponible dans `app/config.example.py`.
-Les variables d'instance et de localisation doivent etre definies dans un fichier `.env` local non versionne, a partir de `.env.generic`.
-Une valeur invalide dans `.env` bloque maintenant le demarrage avec une erreur explicite plutot que d'etre acceptee silencieusement.
+Runtime configuration is loaded from environment variables in `.env`.
 
-Parametres a adapter en priorite :
+- Use `.env.generic` as the starting point for your local `.env`.
+- `app/config.py` contains the active config loader and validation rules.
+- `app/config.example.py` documents the full config structure in Python form.
+- Invalid values in `.env` stop startup with an explicit error instead of being silently accepted.
 
-- `APP_CONFIG["latitude"]` et `APP_CONFIG["longitude"]` pour les previsions
-- `INGESTION["mqtt"]["broker"]` pour pointer vers le broker local du Pi ou un broker distant
-- `INGESTION["mqtt"]["raw_topic"]` et `INGESTION["mqtt"]["aggregated_topic"]` pour rester aligne avec `weather_web_sensors`
-- `UI["refresh_seconds"]` selon la frequence voulue sur l'ecran tactile
-- `DATABASE["path"]` si tu veux deplacer la base SQLite
-- `DATABASE["enabled"]`, `DATABASE["store_raw_messages"]` et `DATABASE["store_sensor_readings"]` pour piloter l'enregistrement progressif des acquisitions
-- `AIR_QUALITY["enabled"]` et les variables `RPI3_METEO_AIR_QUALITY_*` si tu veux ajuster ou desactiver le score relatif
+Settings to review first:
 
-## Demarrage local
+- `RPI3_METEO_LOCATION_LABEL`, `RPI3_METEO_LATITUDE`, `RPI3_METEO_LONGITUDE`, `RPI3_METEO_ALTITUDE_M` for forecast location
+- `RPI3_METEO_MQTT_BROKER` to point to the Raspberry Pi broker or a remote broker
+- `RPI3_METEO_MQTT_RAW_TOPIC` and `RPI3_METEO_MQTT_AGGREGATED_TOPIC` to stay aligned with `weather_web_sensors`
+- `RPI3_METEO_UI_REFRESH_SECONDS` for screen refresh cadence
+- `RPI3_METEO_DB_PATH` if you want to move the SQLite database
+- `RPI3_METEO_DB_ENABLED`, `RPI3_METEO_DB_STORE_RAW_MESSAGES`, and `RPI3_METEO_DB_STORE_SENSOR_READINGS` to control persistence
+- `RPI3_METEO_AIR_QUALITY_ENABLED` and the `RPI3_METEO_AIR_QUALITY_*` variables to tune or disable the relative air quality score
+
+## Local development
 
 ```bash
 cp .env.generic .env
@@ -89,9 +91,9 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Application disponible sur `http://127.0.0.1:8000`.
+The app is then available at `http://127.0.0.1:8000`.
 
-Exemple d'utilisation des variables d'environnement hors Docker :
+Example without Docker, using explicit environment variables:
 
 ```bash
 export RPI3_METEO_LOCATION_LABEL="Keronvel, 29810 Ploumoguer"
@@ -102,187 +104,188 @@ export RPI3_METEO_MQTT_BROKER=127.0.0.1
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Demarrage Docker
+## Docker startup
 
 ```bash
 cp .env.generic .env
 docker compose up --build
 ```
 
-## Docker WSL et Pi3
+## Docker on WSL and Raspberry Pi 3
 
-Le flux recommande est :
+Recommended workflow:
 
-- developpement et tests sous WSL avec Docker Desktop
-- validation finale sur Raspberry Pi 3
+- develop and test on WSL with Docker Desktop
+- perform final validation on the Raspberry Pi 3
 
-Le `Dockerfile` utilise `python:3.11-slim-bookworm`, ce qui reste plus stable qu'un tag Debian implicite et est publie aussi pour `arm32v7` dans l'image officielle Python Docker Hub.
+The `Dockerfile` uses `python:3.11-slim-bookworm`, which is more predictable than an implicit Debian tag and is also published for `arm32v7` in the official Python Docker images.
 
-Tests utiles :
+Useful checks:
 
 ```bash
 docker compose up --build
 ```
 
-Depuis WSL, pour verifier aussi un build cible Pi3 sans deployer sur le Pi :
+From WSL, you can also validate a Pi 3 target build without deploying to the device:
 
 ```bash
 docker buildx build --platform linux/arm/v7 -t rpi3-meteo:test .
 ```
 
-Ce test de build est utile, mais il ne remplace pas une validation reelle sur le Pi3 pour la memoire, les performances et le demarrage complet.
+That build check is useful, but it does not replace a real Pi 3 validation for memory usage, performance, and full startup behavior.
 
-## Stack Docker complete
+## Full Docker stack
 
-La cible de deploiement est maintenant entierement conteneurisee :
+The deployment target is fully containerized:
 
-- `mosquitto` tourne dans `docker compose`
-- l'application web tourne dans `docker compose`
-- la persistance MQTT est geree par des volumes Docker, et SQLite par le dossier `./data` du depot
+- `mosquitto` runs in `docker compose`
+- the web app runs in `docker compose`
+- MQTT persistence uses Docker volumes
+- SQLite persistence uses the repository `./data` directory
 
-Configuration fournie :
+Provided files:
 
 - `docker-compose.yml`
 - `mosquitto/mosquitto.conf`
 - `scripts/deploy_test_rpi3.sh`
 - `.env.generic`
 
-Notes de fonctionnement :
+Runtime notes:
 
-- le Pico publie sur l'IP du Pi, port `1883`
-- ce port est expose par le conteneur `mosquitto`
-- le conteneur `web` se connecte au broker via le nom de service Docker `mosquitto`
-- les donnees SQLite sont conservees dans `./data/weather.db` sur l'hote
-- les donnees Mosquitto sont conservees dans les volumes `mosquitto_data` et `mosquitto_log`
-- les variables personnelles et de localisation sont lues depuis `.env`
+- the Pico publishes to the Pi IP on port `1883`
+- that port is exposed by the `mosquitto` container
+- the `web` container connects to the broker through the Docker service name `mosquitto`
+- SQLite data is stored in `./data/weather.db` on the host
+- Mosquitto data is stored in the `mosquitto_data` and `mosquitto_log` volumes
+- personal and location-specific values are read from `.env`
 
-Preparation recommandee :
+Recommended preparation:
 
 ```bash
 cp .env.generic .env
 ```
 
-Puis editer `.env` pour renseigner au minimum :
+Then edit `.env` and set at least:
 
 - `RPI3_METEO_LOCATION_LABEL`
 - `RPI3_METEO_LATITUDE`
 - `RPI3_METEO_LONGITUDE`
 - `RPI3_METEO_ALTITUDE_M`
 
-Test rapide avec un faux message :
+Quick test with sample messages:
 
 ```bash
 .venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode raw
 .venv/bin/python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
 ```
 
-Observation des messages MQTT recuperees par le broker conteneurise :
+To inspect messages handled by the containerized broker:
 
 ```bash
 docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
 ```
 
-## Redeploiement de test sur le Pi3
+## Test redeploy on Raspberry Pi 3
 
-Le script `scripts/deploy_test_rpi3.sh` permet de remettre a jour et relancer toute la stack Docker sur le Raspberry Pi 3.
+The `scripts/deploy_test_rpi3.sh` script updates and restarts the full Docker stack on the Raspberry Pi 3.
 
 ```bash
 chmod +x scripts/deploy_test_rpi3.sh
 ./scripts/deploy_test_rpi3.sh
 ```
 
-Par defaut, il travaille dans le depot parent du script, donc dans le clone courant. Tu peux aussi surcharger le chemin cible :
+By default, it works from the repository that contains the script. You can override the target path:
 
 ```bash
 APP_DIR=/home/user/github/python/rpi3-meteo ./scripts/deploy_test_rpi3.sh
 ```
 
-Puis il execute :
+It runs:
 
 - `git pull --ff-only`
 - `docker compose down`
 - `docker compose up -d --build`
 - `docker image prune -f`
 
-## Installation Docker sur le Pi3
+## Install Docker on Raspberry Pi 3
 
-Le script `scripts/install_docker_rpi3.sh` installe Docker Engine depuis le depot officiel Docker pour Raspberry Pi OS 32-bit.
+The `scripts/install_docker_rpi3.sh` script installs Docker Engine from the official Docker repository for 32-bit Raspberry Pi OS.
 
 ```bash
 chmod +x scripts/install_docker_rpi3.sh
 ./scripts/install_docker_rpi3.sh
 ```
 
-Le script :
+The script:
 
-- supprime les paquets Docker non officiels qui peuvent entrer en conflit
-- ajoute le depot officiel Docker `debian` adapte au Pi3 en `armhf`
-- cherche automatiquement une version `28.x` de `docker-ce`
-- installe `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin` et `docker-compose-plugin`
-- active le service Docker
-- execute `hello-world`
-- ajoute l'utilisateur courant au groupe `docker`
+- removes unofficial Docker packages that may conflict
+- adds the official Docker `debian` repository for Pi 3 `armhf`
+- looks for a compatible `28.x` `docker-ce` version
+- installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin`
+- enables the Docker service
+- runs `hello-world`
+- adds the current user to the `docker` group
 
-Notes importantes :
+Important notes:
 
-- Docker Docs indique que `Docker Engine v28` est la derniere grande version supportee sur Raspberry Pi OS 32-bit `armhf`
-- apres ajout au groupe `docker`, il faut se deconnecter/reconnecter avant d'utiliser `docker` sans `sudo`
+- Docker documentation states that Docker Engine v28 is the latest major version supported on Raspberry Pi OS 32-bit `armhf`
+- after the user is added to the `docker` group, a logout/login cycle is required before using `docker` without `sudo`
 
-Sources officielles :
+Official references:
 
 - https://docs.docker.com/engine/install/raspberry-pi-os/
 - https://docs.docker.com/engine/install/linux-postinstall/
 
-## Mode kiosque
+## Kiosk mode
 
-Le depot fournit un mode kiosque reversible pour Raspberry Pi OS avec Chromium.
+The repository includes a reversible kiosk mode for Raspberry Pi OS with Chromium.
 
-Scripts :
+Scripts:
 
 - `scripts/start_kiosk.sh`
 - `scripts/stop_kiosk.sh`
 - `scripts/install_kiosk_shortcuts.sh`
 
-Lancement manuel :
+Manual start:
 
 ```bash
 chmod +x scripts/start_kiosk.sh scripts/stop_kiosk.sh
 ./scripts/start_kiosk.sh
 ```
 
-Arret manuel :
+Manual stop:
 
 ```bash
 ./scripts/stop_kiosk.sh
 ```
 
-Reprendre la main :
+Recover the desktop:
 
-- `Alt+F4` ferme la fenetre kiosque
-- `Ctrl+Alt+T` ouvre un terminal
-- le script `stop_kiosk.sh` ferme uniquement le Chromium lance pour `http://127.0.0.1:8000`
+- `Alt+F4` closes the kiosk window
+- `Ctrl+Alt+T` opens a terminal
+- `stop_kiosk.sh` only closes the Chromium instance started for `http://127.0.0.1:8000`
 
-Lanceurs graphiques fournis :
+Provided desktop launchers:
 
 - `desktop/rpi3-meteo-kiosk.desktop`
 - `desktop/rpi3-meteo-kiosk-stop.desktop`
 - `desktop/rpi3-meteo-kiosk-autostart.desktop`
 
-Installation conseillee sur le Pi :
+Recommended installation on the Pi:
 
 ```bash
 chmod +x scripts/start_kiosk.sh scripts/stop_kiosk.sh scripts/install_kiosk_shortcuts.sh
 ./scripts/install_kiosk_shortcuts.sh
 ```
 
-Le script genere automatiquement les fichiers `.desktop` avec le chemin reel du depot sur le Pi.
+The script generates the `.desktop` files automatically with the real repository path on the Pi.
 
-## Verification rapide
+## Quick verification
 
-Une verification simple de syntaxe Python consiste a compiler tous les modules sans les executer :
+A simple Python syntax check is to compile all modules without executing them:
 
 ```bash
 python3 -m compileall app
 ```
 
-Cette commande est utile pour detecter rapidement une erreur de syntaxe avant integration ou redeploiement.
+This is a fast way to catch syntax errors before integration or redeployment.
