@@ -159,6 +159,7 @@ Recommended workflow:
 - perform final validation on the Raspberry Pi 3
 
 The `Dockerfile` uses `python:3.11-slim-bookworm`, which is more predictable than an implicit Debian tag and is also published for `arm32v7` in the official Python Docker images.
+The app uses `psycopg` without the `binary` extra so it remains compatible with Raspberry Pi OS 32-bit Docker targets.
 
 Useful checks:
 
