@@ -6,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
+import matplotlib
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 import numpy as np
 from psycopg import connect
 from psycopg.rows import dict_row
@@ -17,6 +17,7 @@ DEFAULT_SENSORS = [
     "temperature_c",
     "humidity_pct",
     "pressure_hpa",
+    "air_quality_relative_pct",
     "wind_speed_kmh",
     "rain_mm_total",
 ]
@@ -30,16 +31,52 @@ DEFAULT_COLORS = [
     "#8d99ae",
 ]
 
+SENSOR_LABELS = {
+    "temperature_c": "Temperature",
+    "humidity_pct": "Humidite",
+    "pressure_hpa": "Pression",
+    "air_quality_relative_pct": "Qualite air relative",
+    "wind_speed_kmh": "Vent",
+    "rain_mm_total": "Pluie",
+}
+
+
+def env_or_override(primary_name: str, fallback_name: str, default: str) -> str:
+    return os.getenv(primary_name) or os.getenv(fallback_name) or default
+
+
+def load_dotenv() -> None:
+    env_candidates = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parents[1] / ".env",
+    ]
+    for env_path in env_candidates:
+        if not env_path.is_file():
+            continue
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip("'").strip('"')
+            os.environ.setdefault(key, value)
+        return
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Query a remote PostgreSQL weather database and plot time series with matplotlib/numpy."
     )
-    parser.add_argument("--host", default=os.getenv("RPI3_METEO_DB_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.getenv("RPI3_METEO_DB_PORT", "5432")))
+    parser.add_argument("--host", default=env_or_override("RPI3_METEO_PLOT_DB_HOST", "RPI3_METEO_DB_HOST", "127.0.0.1"))
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.getenv("RPI3_METEO_DB_PORT", "5432")),
+    )
     parser.add_argument("--dbname", default=os.getenv("RPI3_METEO_DB_NAME", "rpi3_meteo"))
     parser.add_argument("--user", default=os.getenv("RPI3_METEO_DB_USER", "rpi3_meteo"))
-    parser.add_argument("--password", default=os.getenv("RPI3_METEO_DB_PASSWORD", "rpi3_meteo"))
+    parser.add_argument("--password", default=os.getenv("RPI3_METEO_DB_PASSWORD", ""))
     parser.add_argument("--hours", type=int, default=24, help="Window size in hours to query.")
     parser.add_argument(
         "--sensors",
@@ -168,15 +205,25 @@ def render_plot(args: argparse.Namespace, series: Dict[str, Tuple[np.ndarray, np
         ax.plot(dates, values, color=color, linewidth=1.8)
         ax.fill_between(dates, values, np.min(values), color=color, alpha=0.08)
         ax.set_ylabel(unit or sensor_name)
-        ax.set_title(sensor_name, loc="left", fontsize=11, fontweight="bold")
+        title = SENSOR_LABELS.get(sensor_name, sensor_name)
+        if unit:
+            title = f"{title} ({unit})"
+        ax.set_title(title, loc="left", fontsize=11, fontweight="bold")
         ax.grid(True, linestyle=":", linewidth=0.7, alpha=0.6)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m %H:%M"))
-
     axes[-1].set_xlabel("Timestamp")
     figure.suptitle(args.title, fontsize=16, fontweight="bold", y=0.995)
     figure.autofmt_xdate()
+    figure.canvas.draw()
+    for ax, sensor_name in zip(axes, sensor_names):
+        if sensor_name == "temperature_c":
+            ax.tick_params(axis="x", which="both", labelbottom=True)
+            for label in ax.get_xticklabels():
+                label.set_visible(True)
+                label.set_rotation(35)
+                label.set_horizontalalignment("right")
     figure.tight_layout()
     figure.savefig(output_path, dpi=150, bbox_inches="tight")
     if args.show:
@@ -186,7 +233,13 @@ def render_plot(args: argparse.Namespace, series: Dict[str, Tuple[np.ndarray, np
 
 
 def main() -> None:
+    load_dotenv()
     args = parse_args()
+    if not args.show:
+        matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    globals()["plt"] = plt
     rows = fetch_series(args)
     if not rows:
         raise SystemExit("No numeric sensor data found for the requested filters.")

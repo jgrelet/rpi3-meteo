@@ -249,6 +249,8 @@ Available PostgreSQL views created by the app:
 The repository now includes [tools/plot_remote_postgres.py](/home/jgrelet/git/Python/rpi3-meteo/tools/plot_remote_postgres.py), a dedicated script to query a remote PostgreSQL instance and produce time-series plots with `matplotlib` and `numpy`.
 
 It is intentionally separate from the web app runtime so the Docker image does not need the plotting stack.
+The script automatically reads database credentials from `.env` when present and uses a non-interactive backend unless `--show` is passed.
+For remote plotting outside Docker, use `RPI3_METEO_PLOT_DB_HOST` when `RPI3_METEO_DB_HOST=postgres` is only valid from inside the Docker network.
 
 Install the plotting dependencies on WSL with `conda` and `mamba`:
 
