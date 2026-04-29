@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Dict, List, Union
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -24,6 +26,7 @@ from app.mqtt_ingestion import MqttIngestionService
 templates = Jinja2Templates(directory="app/templates")
 mqtt_service = MqttIngestionService()
 logger = logging.getLogger(__name__)
+APP_TIMEZONE = ZoneInfo(APP_CONFIG["timezone"])
 PAGE_LABELS = {
     "overview": "Accueil",
     "raw-data": "Temps reel",
@@ -60,7 +63,56 @@ def nav_pages() -> List[Dict[str, str]]:
 def compact_timestamp(value: str | None) -> str:
     if not value:
         return "-"
-    return str(value).replace("T", " ")[:19]
+    try:
+        dt = datetime.fromisoformat(str(value))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(APP_TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return str(value).replace("T", " ")[:19]
+
+
+def payload_timestamp(payload_json: str | None) -> str:
+    if not payload_json:
+        return "-"
+    try:
+        payload = json.loads(payload_json)
+    except (TypeError, ValueError):
+        return "-"
+    if not isinstance(payload, dict):
+        return "-"
+
+    dt_paris = payload.get("datetime_paris")
+    tz_name = payload.get("timezone")
+    if dt_paris:
+        return f"{dt_paris} {tz_name}" if tz_name else str(dt_paris)
+
+    timestamp = payload.get("timestamp")
+    try:
+        dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
+    except (TypeError, ValueError, OSError):
+        return "-"
+    rendered = dt.astimezone(APP_TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+    return f"{rendered} {APP_CONFIG['timezone']}"
+
+
+def normalize_readings_timestamps(readings: List[Dict]) -> List[Dict]:
+    normalized = []
+    for row in readings:
+        item = dict(row)
+        item["recorded_at"] = compact_timestamp(item.get("recorded_at"))
+        normalized.append(item)
+    return normalized
+
+
+def normalize_messages_timestamps(messages: List[Dict]) -> List[Dict]:
+    normalized = []
+    for row in messages:
+        item = dict(row)
+        item["recorded_at"] = compact_timestamp(item.get("recorded_at"))
+        item["payload_recorded_at"] = payload_timestamp(item.get("payload_json"))
+        normalized.append(item)
+    return normalized
 
 
 def gas_quality(value: object) -> Dict[str, str] | None:
@@ -244,19 +296,19 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 @app.get("/", response_class=HTMLResponse)
 async def overview(request: Request) -> HTMLResponse:
     try:
-        latest_readings = fetch_latest_readings(export_mode="aggregated")
+        latest_readings = normalize_readings_timestamps(fetch_latest_readings(export_mode="aggregated"))
         if not latest_readings:
-            latest_readings = fetch_latest_readings(export_mode="raw")
-        latest_raw = fetch_latest_messages(limit=1, export_mode="raw")
-        latest_aggregated = fetch_latest_messages(limit=1, export_mode="aggregated")
+            latest_readings = normalize_readings_timestamps(fetch_latest_readings(export_mode="raw"))
+        latest_raw = normalize_messages_timestamps(fetch_latest_messages(limit=1, export_mode="raw"))
+        latest_aggregated = normalize_messages_timestamps(fetch_latest_messages(limit=1, export_mode="aggregated"))
         context = template_context(request)
         context.update(
             {
                 "latest_readings": latest_readings,
                 "raw_cards": metric_cards_from_payload(latest_raw[0]["payload_json"]) if latest_raw else [],
                 "aggregated_cards": metric_cards_from_payload(latest_aggregated[0]["payload_json"]) if latest_aggregated else [],
-                "latest_raw_at": compact_timestamp(latest_raw[0]["recorded_at"]) if latest_raw else "-",
-                "latest_aggregated_at": compact_timestamp(latest_aggregated[0]["recorded_at"]) if latest_aggregated else "-",
+                "latest_raw_at": latest_raw[0]["payload_recorded_at"] if latest_raw else "-",
+                "latest_aggregated_at": latest_aggregated[0]["payload_recorded_at"] if latest_aggregated else "-",
                 "mqtt_status": mqtt_service.status(),
             }
         )
@@ -283,13 +335,13 @@ async def health() -> Dict[str, Union[str, bool]]:
 async def page_placeholder(request: Request, page_name: str):
     if page_name == "raw-data":
         try:
-            messages = fetch_latest_messages(export_mode="raw")
+            messages = normalize_messages_timestamps(fetch_latest_messages(export_mode="raw"))
             context = template_context(request)
             context.update(
                 {
                     "messages": messages,
                     "raw_cards": metric_cards_from_payload(messages[0]["payload_json"]) if messages else [],
-                    "latest_raw_at": compact_timestamp(messages[0]["recorded_at"]) if messages else "-",
+                    "latest_raw_at": messages[0]["payload_recorded_at"] if messages else "-",
                 }
             )
             return templates.TemplateResponse("raw_data.html", context)
