@@ -82,11 +82,6 @@ def payload_timestamp(payload_json: str | None) -> str:
     if not isinstance(payload, dict):
         return "-"
 
-    dt_paris = payload.get("datetime_paris")
-    tz_name = payload.get("timezone")
-    if dt_paris:
-        return f"{dt_paris} {tz_name}" if tz_name else str(dt_paris)
-
     timestamp = payload.get("timestamp")
     try:
         dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
