@@ -387,3 +387,20 @@ python3 -m compileall app
 ```
 
 This is a fast way to catch syntax errors before integration or redeployment.
+
+## Take and recover screenshot
+
+With X11, use:
+```bash
+DISPLAY:0 scrop /tmp/screenshot-acceuil.png
+```
+
+with Waylan:
+```bash
+grim /tmp/screenshot-acceuil.png
+```
+
+and copy with scp:
+```bash
+scp jgrelet@192.168.1.70:/tmp/screenshot-*.png .
+```
