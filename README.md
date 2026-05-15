@@ -402,5 +402,5 @@ grim /tmp/screenshot-acceuil.png
 
 and copy with scp:
 ```bash
-scp jgrelet@192.168.1.70:/tmp/screenshot-*.png .
+scp user@192.168.1.x:/tmp/screenshot-*.png .
 ```
