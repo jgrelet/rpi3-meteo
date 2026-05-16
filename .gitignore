@@ -12,3 +12,4 @@ data/
 .env
 Todos.md
 tools/plots/
+scripts/plot.sh
