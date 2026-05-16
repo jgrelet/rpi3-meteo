@@ -98,10 +98,10 @@ The app is then available at `http://127.0.0.1:8000`.
 Example without Docker, using explicit environment variables:
 
 ```bash
-export RPI3_METEO_LOCATION_LABEL="Keronvel, 29810 Ploumoguer"
-export RPI3_METEO_LATITUDE=48.4018424
-export RPI3_METEO_LONGITUDE=-4.6927117
-export RPI3_METEO_ALTITUDE_M=65
+export RPI3_METEO_LOCATION_LABEL="Your location"
+export RPI3_METEO_LATITUDE=42.40
+export RPI3_METEO_LONGITUDE=-13.12
+export RPI3_METEO_ALTITUDE_M=225
 export RPI3_METEO_MQTT_BROKER=127.0.0.1
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
