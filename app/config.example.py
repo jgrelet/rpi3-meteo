@@ -195,7 +195,7 @@ UI = {
     "title": env_str("RPI3_METEO_UI_TITLE", "RPi3 Meteo"),
     "refresh_seconds": _require_positive_int(
         "RPI3_METEO_UI_REFRESH_SECONDS",
-        env_int("RPI3_METEO_UI_REFRESH_SECONDS", 5),
+        env_int("RPI3_METEO_UI_REFRESH_SECONDS", 30),
     ),
     "screen_mode": _require_choice(
         "RPI3_METEO_UI_SCREEN_MODE",

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import statistics
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -261,11 +260,22 @@ def fetch_latest_messages(limit: int = 20, export_mode: Optional[str] = None) ->
 
 def fetch_reduced_stats(export_mode: Optional[str] = "aggregated") -> List[Dict[str, Any]]:
     query = """
-    SELECT sensor_name, unit, numeric_value, recorded_at
+    SELECT
+        sensor_name,
+        COALESCE(unit, '') AS unit,
+        COUNT(*) AS samples,
+        ROUND(AVG(numeric_value)::numeric, 3) AS avg_value,
+        ROUND(AVG(numeric_value)::numeric, 3) AS mean_value,
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY numeric_value)::numeric, 3) AS median_value,
+        ROUND(COALESCE(STDDEV_POP(numeric_value), 0)::numeric, 3) AS stddev_value,
+        ROUND(MIN(numeric_value)::numeric, 3) AS min_value,
+        ROUND(MAX(numeric_value)::numeric, 3) AS max_value,
+        MAX(recorded_at) AS last_seen
     FROM sensor_readings
     WHERE numeric_value IS NOT NULL
     {mode_clause}
-    ORDER BY sensor_name, recorded_at
+    GROUP BY sensor_name, unit
+    ORDER BY sensor_name
     """
     mode_clause = ""
     params: Tuple[Any, ...] = ()
@@ -276,34 +286,4 @@ def fetch_reduced_stats(export_mode: Optional[str] = "aggregated") -> List[Dict[
         with connection.cursor() as cursor:
             cursor.execute(query.format(mode_clause=mode_clause), params)
             rows = cursor.fetchall()
-
-    grouped: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
-    for row in rows:
-        key = (row["sensor_name"], row["unit"] or "")
-        grouped.setdefault(key, []).append(row)
-
-    stats: List[Dict[str, Any]] = []
-    for (sensor_name, unit), group_rows in grouped.items():
-        values = [float(row["numeric_value"]) for row in group_rows]
-        avg_value = round(statistics.mean(values), 3)
-        median_value = round(statistics.median(values), 3)
-        stddev_value = round(statistics.pstdev(values), 3) if len(values) > 1 else 0.0
-        min_value = round(min(values), 3)
-        max_value = round(max(values), 3)
-        stats.append(
-            {
-                "sensor_name": sensor_name,
-                "unit": unit,
-                "samples": len(values),
-                "avg_value": avg_value,
-                "mean_value": avg_value,
-                "median_value": median_value,
-                "stddev_value": stddev_value,
-                "min_value": min_value,
-                "max_value": max_value,
-                "last_seen": _to_isoformat(group_rows[-1]["recorded_at"]),
-            }
-        )
-
-    stats.sort(key=lambda item: item["sensor_name"])
-    return stats
+    return [_normalize_row(row) for row in rows]
