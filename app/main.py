@@ -127,11 +127,9 @@ def relative_air_quality_status(value: object) -> Dict[str, str] | None:
         score_pct = float(value)
     except (TypeError, ValueError):
         return None
-    if score_pct >= 80:
+    if score_pct >= 70:
         return {"label": "Bon", "class_name": "good", "hint": "Score relatif local"}
-    if score_pct >= 60:
-        return {"label": "Correct", "class_name": "medium", "hint": "Score relatif local"}
-    if score_pct >= 40:
+    if score_pct >= 35:
         return {"label": "Moyen", "class_name": "medium", "hint": "Score relatif local"}
     return {"label": "Degrade", "class_name": "poor", "hint": "Score relatif local"}
 

@@ -131,11 +131,9 @@ class RelativeAirQualityEstimator:
     def _score_label(self, score_pct: float, ready: bool) -> str:
         if not ready:
             return "Apprentissage"
-        if score_pct >= 80:
+        if score_pct >= 70:
             return "Bon"
-        if score_pct >= 60:
-            return "Correct"
-        if score_pct >= 40:
+        if score_pct >= 35:
             return "Moyen"
         return "Degrade"
 
