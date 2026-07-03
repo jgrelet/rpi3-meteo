@@ -35,6 +35,32 @@ PAGE_LABELS = {
     "forecast-hours": "Prochaines heures",
     "forecast-days": "4 jours",
 }
+HELP_SECTIONS = [
+    {
+        "title": "Principe",
+        "items": [
+            "La station lit les mesures locales publiees par les capteurs via MQTT.",
+            "Les messages bruts sont conserves pour verifier exactement ce qui arrive du terrain.",
+            "Les mesures reduites regroupent les valeurs utiles pour une lecture rapide sur l'ecran.",
+        ],
+    },
+    {
+        "title": "Donnees",
+        "items": [
+            "Temps reel affiche le dernier paquet MQTT recu.",
+            "Synthese affiche les valeurs agregees et les statistiques calculees.",
+            "Previsions interroge Open-Meteo avec la latitude, la longitude et l'altitude configurees.",
+        ],
+    },
+    {
+        "title": "Kiosque",
+        "items": [
+            "L'interface est prevue pour un ecran tactile Raspberry Pi en mode kiosque.",
+            "Les pages meteo se rafraichissent automatiquement selon RPI3_METEO_UI_REFRESH_SECONDS.",
+            "Le titre de l'accueil ouvre cette aide, et Accueil ramene au tableau de bord.",
+        ],
+    },
+]
 PRIMARY_REDUCED_METRICS = {
     "temperature_c": ("Temperature", "C"),
     "humidity_pct": ("Humidite", "%"),
@@ -324,6 +350,13 @@ async def health() -> Dict[str, Union[str, bool]]:
     }
 
 
+@app.get("/help", response_class=HTMLResponse)
+async def help_page(request: Request) -> HTMLResponse:
+    context = template_context(request)
+    context.update({"help_sections": HELP_SECTIONS})
+    return templates.TemplateResponse("help.html", context)
+
+
 @app.get("/pages/{page_name}")
 async def page_placeholder(request: Request, page_name: str):
     if page_name == "raw-data":
@@ -347,13 +380,18 @@ async def page_placeholder(request: Request, page_name: str):
             )
     if page_name == "reduced-data":
         try:
-            stats = fetch_reduced_stats(export_mode="aggregated")
+            stats_export_mode = "aggregated"
+            stats = fetch_reduced_stats(export_mode=stats_export_mode)
+            if not stats:
+                stats_export_mode = "raw"
+                stats = fetch_reduced_stats(export_mode=stats_export_mode)
             split_stats = split_reduced_stats(stats)
             context = template_context(request)
             context.update(
                 {
                     "primary_stats": split_stats["primary"],
                     "secondary_stats": split_stats["secondary"],
+                    "stats_export_mode": stats_export_mode,
                 }
             )
             return templates.TemplateResponse("reduced_data.html", context)

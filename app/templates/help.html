@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }} - Aide</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <main class="layout">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Aide</p>
+                <h1><a class="app-title-link" href="/">{{ title }}</a></h1>
+            </div>
+            <a class="status-pill help-back" href="/">Accueil</a>
+        </header>
+
+        <nav class="nav nav-compact">
+            {% for page in pages %}
+            <a class="nav-item" href="{{ page.href }}">{{ page.label }}</a>
+            {% endfor %}
+        </nav>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Fonctionnement</h2>
+                <span>Station locale</span>
+            </div>
+            <div class="help-grid">
+                {% for section in help_sections %}
+                <article class="help-block">
+                    <h3>{{ section.title }}</h3>
+                    <ul>
+                        {% for item in section["items"] %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>

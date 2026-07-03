@@ -74,8 +74,8 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=int(os.getenv("RPI3_METEO_DB_PORT", "5432")),
     )
-    parser.add_argument("--dbname", default=os.getenv("RPI3_METEO_DB_NAME", "rpi3_meteo"))
-    parser.add_argument("--user", default=os.getenv("RPI3_METEO_DB_USER", "rpi3_meteo"))
+    parser.add_argument("--dbname", default=os.getenv("RPI3_METEO_DB_NAME", "rpi_meteo"))
+    parser.add_argument("--user", default=os.getenv("RPI3_METEO_DB_USER", "rpi_meteo"))
     parser.add_argument("--password", default=os.getenv("RPI3_METEO_DB_PASSWORD", ""))
     parser.add_argument("--hours", type=int, default=24, help="Window size in hours to query.")
     parser.add_argument(
@@ -111,7 +111,7 @@ def parse_args() -> argparse.Namespace:
         default="plots/weather_timeseries.png",
         help="Output PNG path.",
     )
-    parser.add_argument("--title", default="RPi3 Meteo Remote Plots")
+    parser.add_argument("--title", default="RPi Meteo Remote Plots")
     parser.add_argument("--show", action="store_true", help="Display the figure on screen in addition to saving it.")
     return parser.parse_args()
 

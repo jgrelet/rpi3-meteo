@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Arreter RPi3 Meteo Kiosk
+Name=Arreter RPi Meteo Kiosk
 Comment=Fermer Chromium en mode kiosque
 Exec=__APP_DIR__/scripts/stop_kiosk.sh
 Icon=process-stop

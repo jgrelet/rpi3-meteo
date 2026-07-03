@@ -127,9 +127,9 @@ DATABASE = {
     ),
     "host": env_str("RPI3_METEO_DB_HOST", "postgres"),
     "port": _require_positive_int("RPI3_METEO_DB_PORT", env_int("RPI3_METEO_DB_PORT", 5432)),
-    "name": env_str("RPI3_METEO_DB_NAME", "rpi3_meteo"),
-    "user": env_str("RPI3_METEO_DB_USER", "rpi3_meteo"),
-    "password": env_str("RPI3_METEO_DB_PASSWORD", "rpi3_meteo"),
+    "name": env_str("RPI3_METEO_DB_NAME", "rpi_meteo"),
+    "user": env_str("RPI3_METEO_DB_USER", "rpi_meteo"),
+    "password": env_str("RPI3_METEO_DB_PASSWORD", "rpi_meteo"),
     "enabled": env_bool("RPI3_METEO_DB_ENABLED", True),
     "store_raw_messages": env_bool("RPI3_METEO_DB_STORE_RAW_MESSAGES", True),
     "store_sensor_readings": env_bool("RPI3_METEO_DB_STORE_SENSOR_READINGS", True),
@@ -167,7 +167,7 @@ INGESTION = {
         "port": _require_positive_int("RPI3_METEO_MQTT_PORT", env_int("RPI3_METEO_MQTT_PORT", 1883)),
         "aggregated_topic": env_str("RPI3_METEO_MQTT_AGGREGATED_TOPIC", "weather/sensors"),
         "raw_topic": env_str("RPI3_METEO_MQTT_RAW_TOPIC", "weather/sensors/raw"),
-        "client_id": env_str("RPI3_METEO_MQTT_CLIENT_ID", "rpi3-meteo-ui"),
+        "client_id": env_str("RPI3_METEO_MQTT_CLIENT_ID", "rpi-meteo-ui"),
         "user": env_optional_str("RPI3_METEO_MQTT_USER"),
         "password": env_optional_str("RPI3_METEO_MQTT_PASSWORD"),
         "keepalive": _require_positive_int(
@@ -192,7 +192,7 @@ INGESTION = {
 }
 
 UI = {
-    "title": env_str("RPI3_METEO_UI_TITLE", "RPi3 Meteo"),
+    "title": env_str("RPI3_METEO_UI_TITLE", "RPI Météo"),
     "refresh_seconds": _require_positive_int(
         "RPI3_METEO_UI_REFRESH_SECONDS",
         env_int("RPI3_METEO_UI_REFRESH_SECONDS", 30),

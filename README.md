@@ -1,6 +1,6 @@
-# rpi3-meteo
+# rpi-meteo
 
-Weather dashboard designed for a Raspberry Pi 3.
+Weather dashboard designed for a Raspberry Pi.
 
 The project combines:
 
@@ -56,7 +56,7 @@ Publish test messages with:
 To inspect both MQTT flows inside the Docker stack:
 
 ```bash
-docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
+docker exec -it rpi-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
 ```
 
 ## Configuration
@@ -77,6 +77,7 @@ Settings to review first:
 - `RPI3_METEO_DB_HOST`, `RPI3_METEO_DB_PORT`, `RPI3_METEO_DB_NAME`, `RPI3_METEO_DB_USER`, `RPI3_METEO_DB_PASSWORD` for PostgreSQL access
 - `RPI3_METEO_DB_ENABLED`, `RPI3_METEO_DB_STORE_RAW_MESSAGES`, and `RPI3_METEO_DB_STORE_SENSOR_READINGS` to control persistence
 - `RPI3_METEO_AIR_QUALITY_ENABLED` and the `RPI3_METEO_AIR_QUALITY_*` variables to tune or disable the relative air quality score
+- `RPI3_METEO_CONTAINER_UID` and `RPI3_METEO_CONTAINER_GID` to match the Docker web container user with the owner of the local `./data` directory
 
 Database credentials can be replaced with your own secret values in `.env`. Keep `.env` out of version control and do not commit real passwords.
 
@@ -84,12 +85,11 @@ Database credentials can be replaced with your own secret values in `.env`. Keep
 
 ```bash
 cp .env.generic .env
-python3 -m venv .venv
-source .venv/bin/activate
+conda env create -f environment.yml
+conda activate rpi-meteo
 set -a
 source .env
 set +a
-pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
@@ -116,8 +116,8 @@ docker compose up --build
 For local development on WSL with Docker Desktop, you can also use:
 
 ```bash
-chmod +x scripts/deploy_dev.sh
-./scripts/deploy_dev.sh
+chmod +x scripts/deploy_rpi.sh
+./scripts/deploy_rpi.sh
 ```
 
 If port `8000` is already in use on your workstation, set a different host port in `.env`, for example:
@@ -131,7 +131,7 @@ Typical local dev test flow on WSL:
 1. Start the stack locally:
 
 ```bash
-./scripts/deploy_dev.sh
+./scripts/deploy_rpi.sh
 ```
 
 2. Open the app in a browser:
@@ -151,15 +151,150 @@ python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
 
 4. Refresh the dashboard and confirm that the realtime cards and recent measurements are populated.
 
-## Docker on WSL and Raspberry Pi 3
+## Fresh Raspberry Pi installation
+
+On a new Raspberry Pi OS installation, install the basic tools first. This must be done on the Raspberry Pi itself, including from a Remote-SSH terminal: the Remote-SSH session uses the tools installed on the Pi, not the ones installed on your PC.
+
+```bash
+sudo apt update
+sudo apt install -y git curl ca-certificates
+```
+
+## Miniconda on Raspberry Pi
+
+Use a 64-bit Raspberry Pi OS image. Check the architecture first:
+
+```bash
+uname -m
+```
+
+Expected value for current Raspberry Pi OS 64-bit is `aarch64`. If the command returns `armv7l`, install the 64-bit OS before using the Miniconda installer below.
+
+Download and install Miniconda for Linux aarch64:
+
+```bash
+cd /tmp
+curl -fsSLO https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh
+bash Miniconda3-latest-Linux-aarch64.sh
+```
+
+Accept the license, keep the default install path when possible, and answer `yes` when the installer asks whether to initialize Conda. Then close and reopen the SSH session, or load Conda in the current shell:
+
+```bash
+source "$HOME/miniconda3/etc/profile.d/conda.sh"
+```
+
+After cloning the project with the commands below, create the project environment from the repository:
+
+```bash
+cd ~/github/rpi-meteo
+conda env create -f environment.yml
+conda activate rpi-meteo
+```
+
+When `environment.yml` changes later, update the existing environment with:
+
+```bash
+conda activate rpi-meteo
+conda env update -f environment.yml --prune
+```
+
+If environment creation fails, the `rpi-meteo` environment is usually not created. Check with:
+
+```bash
+conda info --envs
+```
+
+Then fix `environment.yml` and run `conda env create -f environment.yml` again. If a partial environment appears in the list, remove it first:
+
+```bash
+conda env remove -n rpi-meteo
+conda env create -f environment.yml
+```
+
+Run the app directly with Conda:
+
+```bash
+set -a
+source .env
+set +a
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+The dashboard is then available at `http://<raspberry-pi-ip>:8000`.
+
+## Docker installation on Raspberry Pi
+
+Install Docker with the official convenience script, then add the current user to the `docker` group:
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker "$USER"
+```
+
+Close and reopen the SSH session so the new group membership is applied. For the current shell only, you can also run:
+
+```bash
+newgrp docker
+```
+
+Verify Docker and the Compose plugin:
+
+```bash
+docker run hello-world
+docker compose version
+```
+
+Then clone and start the project:
+
+```bash
+mkdir -p ~/github
+cd ~/github
+git clone git@github.com:jgrelet/rpi3-meteo.git rpi-meteo
+cd rpi-meteo
+cp .env.generic .env
+```
+
+If the Pi does not have a GitHub SSH key configured yet, use the HTTPS URL instead:
+
+```bash
+git clone https://github.com/jgrelet/rpi3-meteo.git rpi-meteo
+```
+
+Edit `.env` and set at least the local forecast values:
+
+- `RPI3_METEO_LOCATION_LABEL`
+- `RPI3_METEO_LATITUDE`
+- `RPI3_METEO_LONGITUDE`
+- `RPI3_METEO_ALTITUDE_M`
+
+Start the full stack:
+
+```bash
+docker compose up -d --build
+```
+
+The dashboard is then available from the Pi at:
+
+```text
+http://127.0.0.1:8000
+```
+
+or from another machine on the same network at:
+
+```text
+http://<raspberry-pi-ip>:8000
+```
+
+## Docker on WSL and Raspberry Pi
 
 Recommended workflow:
 
 - develop and test on WSL with Docker Desktop
-- perform final validation on the Raspberry Pi 3
+- perform final validation on the Raspberry Pi
 
-The `Dockerfile` uses `python:3.11-slim-bookworm`, which is more predictable than an implicit Debian tag and is also published for `arm32v7` in the official Python Docker images.
-The app uses `psycopg` without the `binary` extra so it remains compatible with Raspberry Pi OS 32-bit Docker targets.
+The `Dockerfile` uses a Conda-based Miniforge image and installs the runtime from `environment.yml` with `conda`.
+The app uses `psycopg` without the `binary` extra so it remains compatible with Raspberry Pi OS and Docker targets.
 
 Useful checks:
 
@@ -167,13 +302,13 @@ Useful checks:
 docker compose up --build
 ```
 
-From WSL, you can also validate a Pi 3 target build without deploying to the device:
+From WSL, you can also validate a 64-bit Raspberry Pi target build without deploying to the device:
 
 ```bash
-docker buildx build --platform linux/arm/v7 -t rpi3-meteo:test .
+docker buildx build --platform linux/arm64 -t rpi-meteo:test .
 ```
 
-That build check is useful, but it does not replace a real Pi 3 validation for memory usage, performance, and full startup behavior.
+That build check is useful, but it does not replace a real Raspberry Pi validation for memory usage, performance, and full startup behavior.
 
 ## Full Docker stack
 
@@ -190,7 +325,7 @@ Provided files:
 
 - `docker-compose.yml`
 - `mosquitto/mosquitto.conf`
-- `scripts/deploy_test_rpi3.sh`
+- `scripts/deploy_rpi.sh`
 - `.env.generic`
 
 Runtime notes:
@@ -204,11 +339,26 @@ Runtime notes:
 - Mosquitto data is stored in the `mosquitto_data` and `mosquitto_log` volumes
 - local state files are stored in `./data`
 - personal and location-specific values are read from `.env`
+- the web container runs with `RPI3_METEO_CONTAINER_UID:RPI3_METEO_CONTAINER_GID`, defaulting to `1000:1000`, so it can write to bind-mounted local files such as `./data/air_quality_state.json`
 
 Recommended preparation:
 
 ```bash
 cp .env.generic .env
+```
+
+If the Raspberry Pi user that owns the repository is not uid/gid `1000:1000`, set these values before deployment:
+
+```bash
+id -u
+id -g
+```
+
+Then copy the returned values into `.env`:
+
+```bash
+RPI3_METEO_CONTAINER_UID=<id -u result>
+RPI3_METEO_CONTAINER_GID=<id -g result>
 ```
 
 Then edit `.env` and set at least:
@@ -228,14 +378,14 @@ python tools/publish_test_payload.py --host 127.0.0.1 --export-mode aggregated
 To inspect messages handled by the containerized broker:
 
 ```bash
-docker exec -it rpi3-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
+docker exec -it rpi-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
 ```
 
 To inspect PostgreSQL data from the Raspberry Pi host:
 
 ```bash
-docker exec -it rpi3-meteo-postgres psql -U "$RPI3_METEO_DB_USER" -d "$RPI3_METEO_DB_NAME" -c 'select count(*) from raw_messages;'
-docker exec -it rpi3-meteo-postgres psql -U "$RPI3_METEO_DB_USER" -d "$RPI3_METEO_DB_NAME" -c 'select count(*) from sensor_readings;'
+docker exec -it rpi-meteo-postgres psql -U "$RPI3_METEO_DB_USER" -d "$RPI3_METEO_DB_NAME" -c 'select count(*) from raw_messages;'
+docker exec -it rpi-meteo-postgres psql -U "$RPI3_METEO_DB_USER" -d "$RPI3_METEO_DB_NAME" -c 'select count(*) from sensor_readings;'
 ```
 
 Available PostgreSQL views created by the app:
@@ -246,17 +396,17 @@ Available PostgreSQL views created by the app:
 
 ## Remote plotting from WSL
 
-The repository now includes [tools/plot_remote_postgres.py](/home/jgrelet/git/Python/rpi3-meteo/tools/plot_remote_postgres.py), a dedicated script to query a remote PostgreSQL instance and produce time-series plots with `matplotlib` and `numpy`.
+The repository now includes [tools/plot_remote_postgres.py](tools/plot_remote_postgres.py), a dedicated script to query a remote PostgreSQL instance and produce time-series plots with `matplotlib` and `numpy`.
 
 It is intentionally separate from the web app runtime so the Docker image does not need the plotting stack.
 The script automatically reads database credentials from `.env` when present and uses a non-interactive backend unless `--show` is passed.
 For remote plotting outside Docker, use `RPI3_METEO_PLOT_DB_HOST` when `RPI3_METEO_DB_HOST=postgres` is only valid from inside the Docker network.
 
-Install the plotting dependencies on WSL with `conda` and `mamba`:
+Install the plotting dependencies on WSL with `conda`:
 
 ```bash
-conda activate ilizou
-mamba install -c conda-forge psycopg matplotlib numpy
+conda activate rpi-meteo
+conda install -c conda-forge psycopg matplotlib numpy
 ```
 
 Example against the Raspberry Pi database:
@@ -265,13 +415,13 @@ Example against the Raspberry Pi database:
 python tools/plot_remote_postgres.py \
   --host 192.168.1.42 \
   --port 5432 \
-  --dbname rpi3_meteo \
-  --user rpi3_meteo \
-  --password rpi3_meteo \
+  --dbname rpi_meteo \
+  --user rpi_meteo \
+  --password rpi_meteo \
   --hours 48 \
   --export-mode aggregated \
   --sensors temperature_c humidity_pct pressure_hpa wind_speed_kmh rain_mm_total \
-  --out plots/rpi3-meteo-48h.png
+  --out plots/rpi-meteo-48h.png
 ```
 
 The script supports:
@@ -283,56 +433,47 @@ The script supports:
 - `--source` and `--channel` to narrow the query
 - `--show` to display the figure interactively
 
-## Test redeploy on Raspberry Pi 3
+## Deploy on Raspberry Pi
 
-The `scripts/deploy_test_rpi3.sh` script updates and restarts the full Docker stack on the Raspberry Pi 3.
+The `scripts/deploy_rpi.sh` script restarts the full Docker stack from the current working tree.
+It is the preferred workflow when editing directly on the Raspberry Pi with Remote-SSH.
 
 ```bash
-chmod +x scripts/deploy_test_rpi3.sh
-./scripts/deploy_test_rpi3.sh
+chmod +x scripts/deploy_rpi.sh
+./scripts/deploy_rpi.sh
 ```
 
 By default, it works from the repository that contains the script. You can override the target path:
 
 ```bash
-APP_DIR=/home/user/github/python/rpi3-meteo ./scripts/deploy_test_rpi3.sh
+APP_DIR=/home/user/github/rpi-meteo ./scripts/deploy_rpi.sh
 ```
 
-It runs:
+Default `up` runs:
 
-- `git pull --ff-only`
 - `docker compose down`
-- `docker compose up -d --build`
-- `docker image prune -f`
+- `docker compose build`
+- `docker compose up -d`
 
-## Install Docker on Raspberry Pi 3
-
-The `scripts/install_docker_rpi3.sh` script installs Docker Engine from the official Docker repository for 32-bit Raspberry Pi OS.
+Useful commands:
 
 ```bash
-chmod +x scripts/install_docker_rpi3.sh
-./scripts/install_docker_rpi3.sh
+./scripts/deploy_rpi.sh ps
+./scripts/deploy_rpi.sh logs
+./scripts/deploy_rpi.sh restart
+./scripts/deploy_rpi.sh down
 ```
 
-The script:
+If you still want the old Git-based deployment flow, use:
 
-- removes unofficial Docker packages that may conflict
-- adds the official Docker `debian` repository for Pi 3 `armhf`
-- looks for a compatible `28.x` `docker-ce` version
-- installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin`
-- enables the Docker service
-- runs `hello-world`
-- adds the current user to the `docker` group
+```bash
+./scripts/deploy_rpi.sh pull-up
+```
 
-Important notes:
-
-- Docker documentation states that Docker Engine v28 is the latest major version supported on Raspberry Pi OS 32-bit `armhf`
-- after the user is added to the `docker` group, a logout/login cycle is required before using `docker` without `sudo`
-
-Official references:
-
-- https://docs.docker.com/engine/install/raspberry-pi-os/
-- https://docs.docker.com/engine/install/linux-postinstall/
+Migration note: older deployments used `rpi3-meteo` as the Docker Compose prefix.
+The current stack uses `rpi-meteo`, so new Docker volumes are named with the `rpi-meteo_` prefix.
+The deploy script removes old containers with the previous prefix to avoid port conflicts, but it does not delete old volumes.
+If you need to keep existing PostgreSQL data, back it up before switching prefixes.
 
 ## Kiosk mode
 
@@ -365,9 +506,12 @@ Recover the desktop:
 
 Provided desktop launchers:
 
-- `desktop/rpi3-meteo-kiosk.desktop`
-- `desktop/rpi3-meteo-kiosk-stop.desktop`
-- `desktop/rpi3-meteo-kiosk-autostart.desktop`
+- `desktop/rpi-meteo-kiosk.desktop`
+- `desktop/rpi-meteo-kiosk-stop.desktop`
+- `desktop/rpi-meteo-kiosk-autostart.desktop`
+
+These files are templates. Do not copy them manually as-is: their `Exec` entries contain
+`__APP_DIR__`, which must be replaced by the real repository path on the Raspberry Pi.
 
 Recommended installation on the Pi:
 
@@ -377,6 +521,14 @@ chmod +x scripts/start_kiosk.sh scripts/stop_kiosk.sh scripts/install_kiosk_shor
 ```
 
 The script generates the `.desktop` files automatically with the real repository path on the Pi.
+It installs:
+
+- `rpi-meteo-kiosk.desktop` on the desktop, using `xdg-user-dir DESKTOP`, `~/Bureau`, or `~/Desktop`
+- `rpi-meteo-kiosk-stop.desktop` in the same desktop directory
+- `rpi-meteo-kiosk-autostart.desktop` in `~/.config/autostart`
+
+After installation, the kiosk launcher can be started from the desktop and the autostart entry
+will launch the kiosk at the next graphical session login.
 
 ## Quick verification
 

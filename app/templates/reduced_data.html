@@ -14,7 +14,7 @@
                 <p class="eyebrow">Vue consolidee</p>
                 <h1>Donnees reduites</h1>
             </div>
-            <div class="status-pill ok">Agrege</div>
+            <div class="status-pill ok">{{ 'Agrege' if stats_export_mode == 'aggregated' else 'Brut' }}</div>
         </header>
         <nav class="nav nav-compact">
             {% for page in pages %}
@@ -23,8 +23,8 @@
         </nav>
         <section class="panel">
             <div class="panel-head">
-                <h2>Statistiques agregees</h2>
-                <span>Fenetre 60 s en test</span>
+                <h2>Statistiques {{ 'agregees' if stats_export_mode == 'aggregated' else 'sur donnees brutes' }}</h2>
+                <span>{{ 'Flux weather/sensors' if stats_export_mode == 'aggregated' else 'Flux weather/sensors/raw' }}</span>
             </div>
             {% if primary_stats %}
             <div class="metrics metrics-reduced">

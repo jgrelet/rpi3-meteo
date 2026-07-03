@@ -67,6 +67,18 @@ h2 {
     font-size: 1rem;
 }
 
+.app-title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.app-title-link:focus-visible,
+.app-title-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
+}
+
 .eyebrow {
     margin: 0 0 6px;
     text-transform: uppercase;
@@ -121,6 +133,14 @@ h2 {
 .status-pill.off {
     background: rgba(111, 108, 99, 0.16);
     color: #4d4a43;
+}
+
+.help-back {
+    display: inline-flex;
+    align-items: center;
+    color: #285f2b;
+    text-decoration: none;
+    background: rgba(46, 125, 50, 0.14);
 }
 
 .card-grid {
@@ -354,6 +374,35 @@ pre {
     font-size: 0.82rem;
 }
 
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.help-block {
+    padding: 10px;
+    border-radius: 12px;
+    background: rgba(29, 42, 47, 0.05);
+}
+
+.help-block h3 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.help-block ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.help-block li {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 0.86rem;
+    line-height: 1.35;
+}
+
 .metric-value-good {
     color: #285f2b;
 }
@@ -407,6 +456,10 @@ pre {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .help-grid {
+        grid-template-columns: 1fr;
+    }
+
     .forecast-day-card {
         min-height: 102px;
     }
@@ -457,6 +510,10 @@ pre {
 
     .hour-strip {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .help-grid {
+        grid-template-columns: 1fr;
     }
 
     .forecast-day-card {

@@ -1,9 +1,21 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_URL="${APP_URL:-http://127.0.0.1:8000}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="${ENV_FILE:-${APP_DIR}/.env}"
+WEB_PORT="8000"
+
+if [ -f "$ENV_FILE" ]; then
+    configured_port="$(grep -E '^RPI3_METEO_WEB_PORT=' "$ENV_FILE" 2>/dev/null | tail -n 1 | cut -d '=' -f 2-)"
+    if [ -n "$configured_port" ]; then
+        WEB_PORT="$configured_port"
+    fi
+fi
+
+APP_URL="${APP_URL:-http://127.0.0.1:${WEB_PORT}}"
 BROWSER_BIN="${BROWSER_BIN:-chromium-browser}"
-PROFILE_DIR="${PROFILE_DIR:-${HOME}/.config/rpi3-meteo-kiosk}"
+PROFILE_DIR="${PROFILE_DIR:-${HOME}/.config/rpi-meteo-kiosk}"
 WAYLAND_DISPLAY_NAME="${WAYLAND_DISPLAY_NAME:-wayland-0}"
 DISABLE_GPU="${DISABLE_GPU:-false}"
 
@@ -70,6 +82,6 @@ if [ "$DISABLE_GPU" = "true" ]; then
     )
 fi
 
-nohup "$BROWSER_BIN" "${CHROMIUM_FLAGS[@]}" >/tmp/rpi3-meteo-kiosk.log 2>&1 &
+nohup "$BROWSER_BIN" "${CHROMIUM_FLAGS[@]}" >/tmp/rpi-meteo-kiosk.log 2>&1 &
 
 echo "Mode kiosk Chromium lancé sur ${APP_URL}"

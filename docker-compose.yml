@@ -1,7 +1,9 @@
+name: rpi-meteo
+
 services:
   mosquitto:
     image: eclipse-mosquitto:2
-    container_name: rpi3-meteo-mosquitto
+    container_name: rpi-meteo-mosquitto
     ports:
       - "1883:1883"
     volumes:
@@ -12,7 +14,7 @@ services:
 
   postgres:
     image: postgres:16-bookworm
-    container_name: rpi3-meteo-postgres
+    container_name: rpi-meteo-postgres
     env_file:
       - .env
     environment:
@@ -33,7 +35,10 @@ services:
   web:
     build:
       context: .
-    container_name: rpi3-meteo-web
+      args:
+        APP_UID: ${RPI3_METEO_CONTAINER_UID:-1000}
+        APP_GID: ${RPI3_METEO_CONTAINER_GID:-1000}
+    container_name: rpi-meteo-web
     depends_on:
       mosquitto:
         condition: service_started
@@ -45,6 +50,7 @@ services:
       - "${RPI3_METEO_WEB_PORT:-8000}:8000"
     volumes:
       - ./data:/app/data
+    user: "${RPI3_METEO_CONTAINER_UID:-1000}:${RPI3_METEO_CONTAINER_GID:-1000}"
     restart: unless-stopped
 volumes:
   mosquitto_data:
