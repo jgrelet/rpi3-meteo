@@ -51,6 +51,22 @@ body {
     gap: 10px;
 }
 
+.topbar-title {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.topbar-status {
+    display: inline-grid;
+    grid-template-columns: max-content max-content;
+    grid-auto-flow: column;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    white-space: nowrap;
+}
+
 h1,
 h2,
 p {
@@ -118,11 +134,34 @@ h2 {
 }
 
 .status-pill {
+    display: inline-flex;
     flex: none;
-    padding: 8px 10px;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 14px;
     border-radius: 999px;
-    font-size: 0.82rem;
+    line-height: 1;
+    font-size: 0.95rem;
     font-weight: 700;
+}
+
+.clock-pill {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 86px;
+    min-height: 42px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(29, 42, 47, 0.08);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: center;
 }
 
 .status-pill.ok {
@@ -492,8 +531,16 @@ pre {
     }
 
     .status-pill {
-        padding: 6px 8px;
-        font-size: 0.74rem;
+        min-height: 34px;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+    }
+
+    .clock-pill {
+        min-width: 76px;
+        min-height: 34px;
+        padding: 8px 10px;
+        font-size: 0.82rem;
     }
 
     .metrics {

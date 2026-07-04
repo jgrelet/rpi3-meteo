@@ -5,16 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="{{ refresh_seconds }}">
     <title>{{ title }} - Raw Data</title>
-    <link rel="stylesheet" href="/static/app.css">
+    <link rel="stylesheet" href="/static/app.css?v=clock2">
 </head>
 <body>
     <main class="layout">
         <header class="topbar">
-            <div>
+            <div class="topbar-title">
                 <p class="eyebrow">Flux MQTT</p>
                 <h1>Temps reel</h1>
             </div>
-            <div class="status-pill ok">Brut</div>
+            <div class="topbar-status">
+                <time class="clock-pill" id="topbar-clock" aria-label="Heure locale">--:--:--</time>
+                <div class="status-pill ok">Brut</div>
+            </div>
         </header>
         <nav class="nav nav-compact">
             {% for page in pages %}
@@ -54,5 +57,6 @@
             {% endif %}
         </section>
     </main>
+    <script src="/static/clock.js?v=clock2"></script>
 </body>
 </html>

@@ -5,17 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="{{ refresh_seconds }}">
     <title>{{ title }}</title>
-    <link rel="stylesheet" href="/static/app.css">
+    <link rel="stylesheet" href="/static/app.css?v=clock2">
 </head>
 <body>
     <main class="layout layout-dashboard">
         <header class="topbar">
-            <div>
+            <div class="topbar-title">
                 <p class="eyebrow">Station locale</p>
                 <h1><a class="app-title-link" href="/help">{{ title }}</a></h1>
             </div>
-            <div class="status-pill {{ 'ok' if mqtt_status.connected else 'off' }}">
-                MQTT {{ 'connecte' if mqtt_status.connected else 'hors ligne' }}
+            <div class="topbar-status">
+                <time class="clock-pill" id="topbar-clock" aria-label="Heure locale">--:--:--</time>
+                <div class="status-pill {{ 'ok' if mqtt_status.connected else 'off' }}">
+                    MQTT {{ 'connecte' if mqtt_status.connected else 'hors ligne' }}
+                </div>
             </div>
         </header>
 
@@ -94,5 +97,6 @@
             </div>
         </section>
     </main>
+    <script src="/static/clock.js?v=clock2"></script>
 </body>
 </html>

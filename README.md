@@ -478,6 +478,8 @@ If you need to keep existing PostgreSQL data, back it up before switching prefix
 ## Kiosk mode
 
 The repository includes a reversible kiosk mode for Raspberry Pi OS with Chromium.
+The kiosk script reads `.env`, waits for the graphical session and the local web app,
+then opens Chromium on `http://127.0.0.1:${RPI3_METEO_WEB_PORT:-8000}`.
 
 Scripts:
 
@@ -529,6 +531,32 @@ It installs:
 
 After installation, the kiosk launcher can be started from the desktop and the autostart entry
 will launch the kiosk at the next graphical session login.
+
+Kiosk settings in `.env`:
+
+```bash
+RPI3_METEO_KIOSK_SCREEN_BLANK_SECONDS=60
+RPI3_METEO_KIOSK_STARTUP_WAIT_SECONDS=60
+```
+
+- `RPI3_METEO_KIOSK_SCREEN_BLANK_SECONDS` controls the screen blanking delay in seconds.
+  The default is `60`. Set it to `0` to disable blanking from the kiosk script.
+- `RPI3_METEO_KIOSK_STARTUP_WAIT_SECONDS` controls how long autostart waits for the
+  graphical session and the local web app before giving up.
+
+On X11 sessions, the script applies the blanking delay with `xset`.
+On Wayland sessions without an X11 `DISPLAY`, screen blanking is controlled by the
+desktop compositor; keep the same `.env` value as the application setting and configure
+the Raspberry Pi OS power-management setting to match when needed.
+
+Kiosk diagnostics:
+
+```bash
+tail -n 100 /tmp/rpi-meteo-kiosk.log
+journalctl --user -b --no-pager | grep -i rpi-meteo
+docker compose ps
+curl -I http://127.0.0.1:${RPI3_METEO_WEB_PORT:-8000}
+```
 
 ## Quick verification
 

@@ -5,16 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="{{ refresh_seconds }}">
     <title>{{ title }} - Forecast</title>
-    <link rel="stylesheet" href="/static/app.css">
+    <link rel="stylesheet" href="/static/app.css?v=clock2">
 </head>
 <body>
     <main class="layout">
         <header class="topbar">
-            <div>
+            <div class="topbar-title">
                 <p class="eyebrow">Provider meteo</p>
                 <h1>{{ "Maintenant" if forecast_page == "forecast-now" else "Prochaines heures" if forecast_page == "forecast-hours" else "4 jours" }}</h1>
             </div>
-            <div class="status-pill off">{{ forecast_provider }}</div>
+            <div class="topbar-status">
+                <time class="clock-pill" id="topbar-clock" aria-label="Heure locale">--:--:--</time>
+                <div class="status-pill off">{{ forecast_provider }}</div>
+            </div>
         </header>
         <nav class="nav nav-compact">
             {% for page in pages %}
@@ -103,5 +106,6 @@
             {% endif %}
         </section>
     </main>
+    <script src="/static/clock.js?v=clock2"></script>
 </body>
 </html>
