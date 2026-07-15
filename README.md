@@ -181,12 +181,17 @@ Default Raspberry Pi settings:
 RPI3_METEO_TRANSMISSION_MODE=hc-12
 RPI3_METEO_HC12_HOST_DEVICE=/dev/serial0
 RPI3_METEO_HC12_DEVICE=/dev/serial0
+RPI3_METEO_HC12_DEVICE_GID=20
 RPI3_METEO_HC12_BAUDRATE=9600
 ```
 
 Docker maps `RPI3_METEO_HC12_HOST_DEVICE` from the host to `RPI3_METEO_HC12_DEVICE`
 inside the `web` container. The default host device in `.env.generic` is `/dev/null`
 so local non-Raspberry Pi Docker starts do not fail before HC-12 hardware is installed.
+`RPI3_METEO_HC12_DEVICE_GID` must match the host group that owns the UART, normally
+the numeric GID shown by `getent group dialout`. Compose adds this as a supplementary
+group to the non-root web user; mounting the device alone does not grant access to a
+`root:dialout` device with mode `660`.
 
 Recommended wiring:
 
@@ -721,19 +726,35 @@ python3 -m compileall app
 
 This is a fast way to catch syntax errors before integration or redeployment.
 
-## Take and recover screenshot
+## Take and recover a kiosk screenshot
 
-With X11, use:
+Create a local directory for captures:
+
 ```bash
-DISPLAY:0 scrop /tmp/screenshot-acceuil.png
+mkdir -p ~/tmp
 ```
 
-with Waylan:
+The Raspberry Pi kiosk currently uses Wayland. From an SSH terminal, provide the
+graphical session environment explicitly and capture the complete display with
+`grim`:
+
 ```bash
-grim /tmp/screenshot-acceuil.png
+XDG_RUNTIME_DIR=/run/user/$(id -u) WAYLAND_DISPLAY=wayland-0 grim ~/tmp/capture-kiosque.png
 ```
 
-and copy with scp:
+If `grim` is not installed, install the Raspberry Pi OS package with
+`sudo apt install grim`. The Wayland socket can be checked with
+`ls -l /run/user/$(id -u)/wayland-*` if the command cannot find the display.
+
+For an X11 session, use `scrot` instead:
+
 ```bash
-scp user@192.168.1.x:/tmp/screenshot-*.png .
+DISPLAY=:0 scrot ~/tmp/capture-kiosque.png
+```
+
+The PNG can be opened directly from the Remote-SSH VS Code explorer. To retrieve it
+from another computer, run there:
+
+```bash
+scp jgrelet@192.168.1.70:~/tmp/capture-kiosque.png .
 ```

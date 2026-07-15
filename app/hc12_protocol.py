@@ -14,8 +14,8 @@ def parse_hc12_line(
         raise ValueError("empty HC-12 line")
 
     prefixes = (
-        (raw_prefix, "raw", "hc12/raw"),
-        (aggregated_prefix, "aggregated", "hc12"),
+        (raw_prefix, "raw", "weather/sensors/raw"),
+        (aggregated_prefix, "aggregated", "weather/sensors"),
     )
     for prefix, export_mode, topic in prefixes:
         marker = prefix + " "

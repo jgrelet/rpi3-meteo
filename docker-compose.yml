@@ -52,6 +52,8 @@ services:
       - ./data:/app/data
     devices:
       - "${RPI3_METEO_HC12_HOST_DEVICE:-/dev/null}:${RPI3_METEO_HC12_DEVICE:-/dev/serial0}"
+    group_add:
+      - "${RPI3_METEO_HC12_DEVICE_GID:-20}"
     user: "${RPI3_METEO_CONTAINER_UID:-1000}:${RPI3_METEO_CONTAINER_GID:-1000}"
     restart: unless-stopped
 volumes:

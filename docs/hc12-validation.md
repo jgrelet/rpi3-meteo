@@ -48,6 +48,10 @@ to the Raspberry Pi over SSH, with both repositories added as workspace folders:
 - `rpi3-meteo`: Raspberry Pi, Docker, MQTT and PostgreSQL work
 - `weather_web_sensors`: Pico, MicroPython and HC-12 test work
 
+Keep `weather_web_sensors` as the first workspace folder. MicroPico targets the first
+root when initializing or uploading a project; if `rpi3-meteo` comes first, files can
+be copied under the wrong Pico path instead of replacing `/app` and `/config.py`.
+
 Using a single Remote-SSH window keeps one MicroPico extension host responsible for
 `/dev/ttyACM0`. Do not open a second Remote-SSH VS Code window with MicroPico
 auto-connecting to the same Pico: the two extension hosts can compete for the port
@@ -158,6 +162,12 @@ ls -l /dev/serial0 "$(readlink -f /dev/serial0)"
 Expected on the current Raspberry Pi 4: `/dev/serial0 -> ttyS0`, with the target
 device writable by `root:dialout` and the current user in `dialout`.
 
+When the application runs in Docker, also set `RPI3_METEO_HC12_DEVICE_GID` to the
+numeric host GID returned by `getent group dialout`. Compose must add this GID as a
+supplementary group to the web container user. A device mounted as `root:dialout`
+with mode `660` otherwise remains inaccessible even when it is visible in the
+container.
+
 ## 6. Validate Pico-to-Raspberry-Pi reception
 
 Keep miniterm open with `hc12_pico_test` running. Open a second SSH terminal in the
@@ -202,6 +212,11 @@ After the standalone scripts provide reliable complete lines:
 Only one process may open `/dev/serial0`. Stop all standalone serial tests before
 starting the application bridge.
 
+Use a serial read timeout of at least five seconds for application payloads. The
+standalone pings are short, but a paced weather JSON line can take longer than one
+second to reach its final newline; a shorter timeout makes `readline()` return an
+incomplete payload.
+
 ## Validation record
 
 Bench validation on 2026-07-14:
@@ -215,8 +230,8 @@ Bench validation on 2026-07-14:
 - [x] Raspberry-Pi-to-Pico `PING_RPI` frames received over HC-12
 - [x] bidirectional `PING_RPI` / `ACK_PICO` exchange validated with simultaneous `PING_PICO` traffic
 - [x] standalone bidirectional reliability and endurance validated
-- [ ] HC-12-to-MQTT bridge validated
-- [ ] MQTT-to-PostgreSQL ingestion validated
+- [x] HC-12-to-MQTT bridge validated
+- [x] MQTT-to-PostgreSQL ingestion validated
 
 Observed successful Pico-to-Raspberry-Pi reception began at
 `2026-07-14 15:27:11 UTC` / `2026-07-14 17:27:11 Europe/Paris`.
@@ -229,3 +244,13 @@ The ten-minute endurance test completed from `2026-07-15 06:42:38 UTC` /
 `2026-07-15 08:52:37 Europe/Paris`. Results: 150 `PING_RPI` sent, 150 matching
 `ACK_PICO` received, and all 298 consecutive `PING_PICO` frames from counter 237
 through 534 received. No radio loss was observed during this run.
+
+The application path HC-12 -> `weather/sensors/raw` -> PostgreSQL was validated on
+2026-07-15. Consecutive raw messages were stored at `2026-07-15 12:25:30 UTC`,
+`12:25:40 UTC` and `12:25:50 UTC`, corresponding to `14:25:30`, `14:25:40` and
+`14:25:50 Europe/Paris`.
+
+During the Pico `test` timing profile, raw acquisitions are emitted every 10 seconds
+and aggregated snapshots every 60 seconds. Set the local Raspberry Pi
+`RPI3_METEO_UI_REFRESH_SECONDS=10` while validating this profile so the kiosk can
+show each raw update. The generic production default remains 30 seconds.

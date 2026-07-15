@@ -201,7 +201,7 @@ INGESTION = {
         "mqtt_client_id": env_str("RPI3_METEO_HC12_MQTT_CLIENT_ID", "rpi-meteo-hc12-bridge"),
         "read_timeout_seconds": _require_positive_int(
             "RPI3_METEO_HC12_READ_TIMEOUT_SECONDS",
-            env_int("RPI3_METEO_HC12_READ_TIMEOUT_SECONDS", 1),
+            env_int("RPI3_METEO_HC12_READ_TIMEOUT_SECONDS", 5),
         ),
         "reconnect_seconds": _require_positive_int(
             "RPI3_METEO_HC12_RECONNECT_SECONDS",

@@ -16,6 +16,9 @@
             </div>
             <div class="topbar-status">
                 <time class="clock-pill" id="topbar-clock" aria-label="Heure locale">--:--:--</time>
+                <div class="status-pill {{ 'ok' if transport_status.connected else 'off' }}">
+                    {{ transport_status.label }}
+                </div>
                 <div class="status-pill {{ 'ok' if mqtt_status.connected else 'off' }}">
                     {{ mqtt_status.label }}
                 </div>

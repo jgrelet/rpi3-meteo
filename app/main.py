@@ -224,6 +224,22 @@ def mqtt_status() -> Dict[str, object]:
     }
 
 
+def transport_status() -> Dict[str, object]:
+    mode = INGESTION["transmission_mode"]
+    if mode == "hc-12":
+        status = hc12_bridge_service.status()
+        return {
+            **status,
+            "mode": mode,
+            "label": "Radio HC-12" if status["connected"] else "HC-12 hors ligne",
+        }
+    return {
+        "mode": mode,
+        "connected": True,
+        "label": "Wi-Fi direct",
+    }
+
+
 def render_error_page(request: Request, title: str, detail: str) -> HTMLResponse:
     return HTMLResponse(
         """
@@ -343,6 +359,7 @@ async def overview(request: Request) -> HTMLResponse:
                 "latest_raw_at": latest_raw[0]["payload_recorded_at"] if latest_raw else "-",
                 "latest_aggregated_at": latest_aggregated[0]["payload_recorded_at"] if latest_aggregated else "-",
                 "mqtt_status": mqtt_status(),
+                "transport_status": transport_status(),
             }
         )
         return templates.TemplateResponse("overview.html", context)
@@ -356,11 +373,13 @@ async def overview(request: Request) -> HTMLResponse:
 
 
 @app.get("/health")
-async def health() -> Dict[str, Union[str, bool]]:
+async def health() -> Dict[str, object]:
     return {
         "status": "ok",
         "debug": APP_CONFIG["debug"],
         "forecast_provider": APP_CONFIG["default_forecast_provider"],
+        "mqtt": mqtt_status(),
+        "transport": transport_status(),
     }
 
 
