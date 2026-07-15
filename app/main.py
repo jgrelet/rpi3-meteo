@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.config import APP_CONFIG, UI
+from app.config import APP_CONFIG, INGESTION, UI
 from app.database import (
     fetch_latest_messages,
     fetch_latest_readings,
@@ -21,10 +21,12 @@ from app.database import (
 )
 from app.forecast import get_forecast
 from app.mqtt_ingestion import MqttIngestionService
+from app.serial_ingestion import Hc12MqttBridgeService
 
 
 templates = Jinja2Templates(directory="app/templates")
 mqtt_service = MqttIngestionService()
+hc12_bridge_service = Hc12MqttBridgeService()
 logger = logging.getLogger(__name__)
 APP_TIMEZONE = ZoneInfo(APP_CONFIG["timezone"])
 PAGE_LABELS = {
@@ -39,7 +41,7 @@ HELP_SECTIONS = [
     {
         "title": "Principe",
         "items": [
-            "La station lit les mesures locales publiees par les capteurs via MQTT.",
+            "La station lit les mesures locales publiees par les capteurs via le transport configure.",
             "Les messages bruts sont conserves pour verifier exactement ce qui arrive du terrain.",
             "Les mesures reduites regroupent les valeurs utiles pour une lecture rapide sur l'ecran.",
         ],
@@ -47,7 +49,7 @@ HELP_SECTIONS = [
     {
         "title": "Donnees",
         "items": [
-            "Temps reel affiche le dernier paquet MQTT recu.",
+            "Temps reel affiche le dernier paquet brut recu.",
             "Synthese affiche les valeurs agregees et les statistiques calculees.",
             "Previsions interroge Open-Meteo avec la latitude, la longitude et l'altitude configurees.",
         ],
@@ -213,6 +215,15 @@ def template_context(request: Request) -> Dict[str, object]:
     }
 
 
+def mqtt_status() -> Dict[str, object]:
+    status = mqtt_service.status()
+    return {
+        **status,
+        "mode": "mqtt",
+        "label": "MQTT connecte" if status["connected"] else "MQTT hors ligne",
+    }
+
+
 def render_error_page(request: Request, title: str, detail: str) -> HTMLResponse:
     return HTMLResponse(
         """
@@ -304,7 +315,10 @@ def split_reduced_stats(stats: List[Dict]) -> Dict[str, List[Dict[str, str]]]:
 async def lifespan(_: FastAPI):
     init_db()
     mqtt_service.start()
+    if INGESTION["transmission_mode"] == "hc-12":
+        hc12_bridge_service.start()
     yield
+    hc12_bridge_service.stop()
     mqtt_service.stop()
 
 
@@ -328,7 +342,7 @@ async def overview(request: Request) -> HTMLResponse:
                 "aggregated_cards": metric_cards_from_payload(latest_aggregated[0]["payload_json"]) if latest_aggregated else [],
                 "latest_raw_at": latest_raw[0]["payload_recorded_at"] if latest_raw else "-",
                 "latest_aggregated_at": latest_aggregated[0]["payload_recorded_at"] if latest_aggregated else "-",
-                "mqtt_status": mqtt_service.status(),
+                "mqtt_status": mqtt_status(),
             }
         )
         return templates.TemplateResponse("overview.html", context)
@@ -376,7 +390,7 @@ async def page_placeholder(request: Request, page_name: str):
             return render_error_page(
                 request,
                 UI["title"],
-                "Les messages MQTT bruts sont temporairement indisponibles.",
+                "Les messages bruts sont temporairement indisponibles.",
             )
     if page_name == "reduced-data":
         try:

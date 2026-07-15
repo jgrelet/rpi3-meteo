@@ -18,6 +18,7 @@ ALLOWED_FORECAST_PROVIDERS: Set[str] = {"open-meteo", "openweather"}
 ALLOWED_SCREEN_MODES: Set[str] = {"kiosk", "windowed"}
 ALLOWED_DB_ENGINES: Set[str] = {"postgresql"}
 ALLOWED_CHANNELS: Set[str] = {"mqtt", "serial", "udp"}
+ALLOWED_TRANSMISSION_MODES: Set[str] = {"wifi", "hc-12"}
 
 
 class ConfigError(ValueError):
@@ -156,6 +157,11 @@ AIR_QUALITY = {
 }
 
 INGESTION = {
+    "transmission_mode": _require_choice(
+        "RPI3_METEO_TRANSMISSION_MODE",
+        env_str("RPI3_METEO_TRANSMISSION_MODE", "wifi"),
+        ALLOWED_TRANSMISSION_MODES,
+    ),
     "default_channel": _require_choice(
         "RPI3_METEO_DEFAULT_CHANNEL",
         env_str("RPI3_METEO_DEFAULT_CHANNEL", "mqtt"),
@@ -182,6 +188,24 @@ INGESTION = {
         "baudrate": _require_positive_int(
             "RPI3_METEO_SERIAL_BAUDRATE",
             env_int("RPI3_METEO_SERIAL_BAUDRATE", 9600),
+        ),
+    },
+    "hc12": {
+        "device": env_str("RPI3_METEO_HC12_DEVICE", "/dev/serial0"),
+        "baudrate": _require_positive_int(
+            "RPI3_METEO_HC12_BAUDRATE",
+            env_int("RPI3_METEO_HC12_BAUDRATE", 9600),
+        ),
+        "raw_prefix": env_str("RPI3_METEO_HC12_RAW_PREFIX", "JSON_RAW"),
+        "aggregated_prefix": env_str("RPI3_METEO_HC12_AGGREGATED_PREFIX", "JSON"),
+        "mqtt_client_id": env_str("RPI3_METEO_HC12_MQTT_CLIENT_ID", "rpi-meteo-hc12-bridge"),
+        "read_timeout_seconds": _require_positive_int(
+            "RPI3_METEO_HC12_READ_TIMEOUT_SECONDS",
+            env_int("RPI3_METEO_HC12_READ_TIMEOUT_SECONDS", 1),
+        ),
+        "reconnect_seconds": _require_positive_int(
+            "RPI3_METEO_HC12_RECONNECT_SECONDS",
+            env_int("RPI3_METEO_HC12_RECONNECT_SECONDS", 5),
         ),
     },
     "udp": {

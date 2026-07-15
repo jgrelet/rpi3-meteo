@@ -50,6 +50,8 @@ services:
       - "${RPI3_METEO_WEB_PORT:-8000}:8000"
     volumes:
       - ./data:/app/data
+    devices:
+      - "${RPI3_METEO_HC12_HOST_DEVICE:-/dev/null}:${RPI3_METEO_HC12_DEVICE:-/dev/serial0}"
     user: "${RPI3_METEO_CONTAINER_UID:-1000}:${RPI3_METEO_CONTAINER_GID:-1000}"
     restart: unless-stopped
 volumes:
