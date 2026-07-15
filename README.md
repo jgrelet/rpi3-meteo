@@ -16,6 +16,17 @@ Forecasts are split across three dedicated pages to reduce scrolling on a small 
 - `/pages/forecast-hours`
 - `/pages/forecast-days`
 
+## Sensor transport
+
+The Pico can transmit weather data through one active field link at a time:
+
+- `RPI3_METEO_TRANSMISSION_MODE=wifi` for the existing Wi-Fi path, where the Pico publishes MQTT directly
+- `RPI3_METEO_TRANSMISSION_MODE=hc-12` for HC-12 radio over UART, where the Raspberry Pi bridges HC-12 lines back into MQTT
+
+Keep the Pico `TRANSPORT_MODE` in `../weather_web_sensors/config.py` aligned with
+`RPI3_METEO_TRANSMISSION_MODE`. The application still consumes the local Mosquitto
+broker in both modes.
+
 ## MQTT contract
 
 The application consumes JSON messages published by `weather_web_sensors` on two topics:
@@ -59,6 +70,151 @@ To inspect both MQTT flows inside the Docker stack:
 docker exec -it rpi-meteo-mosquitto mosquitto_sub -h 127.0.0.1 -p 1883 -t 'weather/sensors/#' -v
 ```
 
+## HC-12 contract
+
+HC-12 mode uses transparent UART lines. The Raspberry Pi web service reads these
+lines and republishes them to the same MQTT topics used by Wi-Fi mode:
+
+- `JSON_RAW {...}` for raw acquisitions
+- `JSON {...}` for aggregated snapshots
+
+### Recommended validation setup
+
+Validate the radio link independently before switching either application to HC-12
+mode. Keep the Pico2-W connected to a Raspberry Pi USB port during these tests:
+
+- Pico USB (`/dev/ttyACM0`): power and MicroPython diagnostic console only
+- Pico UART0 on `GP0`/`GP1`: connection to the sensor-side HC-12
+- Raspberry Pi UART on `/dev/serial0`: connection to the receiver-side HC-12
+- SSH: Raspberry Pi control terminal
+
+USB and HC-12 therefore remain active at the same time, but carry different traffic.
+The Pico test script prints diagnostics over USB while its UART exchanges test frames
+over the two HC-12 modules. Do not enable the application HC-12 bridge until the
+standalone bidirectional test has passed: only one process may open `/dev/serial0`.
+
+### Validation sequence
+
+Run the following checks in order and fix each stage before continuing.
+The detailed restart procedure, expected output and validation checklist are kept in
+[`docs/hc12-validation.md`](docs/hc12-validation.md).
+
+1. Confirm that the Raspberry Pi detects the Pico USB console:
+
+   ```bash
+   lsusb
+   ls -l /dev/ttyACM0
+   ```
+
+   The USB list should contain a MicroPython board and `/dev/ttyACM0` should exist.
+   The Raspberry Pi user must belong to the group that owns the device, normally
+   `dialout`.
+
+2. Confirm that the Pico test program is running:
+
+   ```bash
+   python -m serial.tools.miniterm /dev/ttyACM0 115200
+   ```
+
+   The console should print a new `sent: PING_PICO ...` line about every two seconds.
+   Exit miniterm with `Ctrl+]`. The Pico USB port is not the Raspberry Pi HC-12 port.
+
+3. Install the Raspberry Pi serial dependency in the active Conda environment:
+
+   ```bash
+   conda install pyserial=3.5
+   ```
+
+   `pyserial` is the required package. Do not install the unrelated PyPI package named
+   `serial`, which imports successfully but does not provide `serial.Serial`.
+
+4. Enable the Raspberry Pi UART without assigning a Linux login console to it:
+
+   ```bash
+   sudo raspi-config
+   ```
+
+   In `Interface Options` -> `Serial Port`, answer the two questions exactly as follows:
+
+   - login shell accessible over serial: **No**
+   - serial port hardware enabled: **Yes**
+
+   These answers are intentionally different. Answering **Yes** to the login-shell
+   question adds `console=ttyS0,115200` to the kernel command line, reserves the HC-12
+   UART for Linux and can leave `/dev/ttyS0` accessible only by `root`. Reboot after
+   changing this setting.
+
+5. After rebooting and reconnecting over SSH, confirm that the console no longer owns
+   the UART and that the user can access it:
+
+   ```bash
+   cat /proc/cmdline
+   ls -l /dev/serial0 "$(readlink -f /dev/serial0)"
+   ```
+
+   `/proc/cmdline` must not contain `console=ttyS0,115200` or
+   `console=serial0,115200`. `/dev/serial0` should resolve to the enabled UART and its
+   target should be accessible to the current user, normally through `dialout`.
+
+6. With `tools/hc12_pico_test.py` still running on the Pico, validate each direction
+   from the `rpi3-meteo` repository:
+
+   ```bash
+   python tools/hc12_rpi_test.py --device /dev/serial0 --receive
+   python tools/hc12_rpi_test.py --device /dev/serial0 --send
+   python tools/hc12_rpi_test.py --device /dev/serial0 --echo
+   ```
+
+   Run one command at a time. Expected results are Pico-to-Pi `PING_PICO`, Pi-to-Pico
+   `PING_RPI`, then acknowledgements in both directions. Finally leave the echo test
+   running for at least ten minutes and check that there are no corrupted lines or
+   repeated losses.
+
+7. Only after the standalone radio test passes, switch the Pico to
+   `TRANSPORT_MODE = "hc-12"`, configure the Raspberry Pi with
+   `RPI3_METEO_TRANSMISSION_MODE=hc-12`, start the application bridge and verify the
+   HC-12 -> MQTT -> PostgreSQL path.
+
+Default Raspberry Pi settings:
+
+```bash
+RPI3_METEO_TRANSMISSION_MODE=hc-12
+RPI3_METEO_HC12_HOST_DEVICE=/dev/serial0
+RPI3_METEO_HC12_DEVICE=/dev/serial0
+RPI3_METEO_HC12_DEVICE_GID=20
+RPI3_METEO_HC12_BAUDRATE=9600
+```
+
+Docker maps `RPI3_METEO_HC12_HOST_DEVICE` from the host to `RPI3_METEO_HC12_DEVICE`
+inside the `web` container. The default host device in `.env.generic` is `/dev/null`
+so local non-Raspberry Pi Docker starts do not fail before HC-12 hardware is installed.
+`RPI3_METEO_HC12_DEVICE_GID` must match the host group that owns the UART, normally
+the numeric GID shown by `getent group dialout`. Compose adds this as a supplementary
+group to the non-root web user; mounting the device alone does not grant access to a
+`root:dialout` device with mode `660`.
+
+Recommended wiring:
+
+- Raspberry Pi GPIO14 / TXD0, physical pin `8` -> HC-12 `RXD`
+- Raspberry Pi GPIO15 / RXD0, physical pin `10` <- HC-12 `TXD`
+- Raspberry Pi `GND`, physical pin `6` -> HC-12 `GND`
+- Pico2-W `GP0` / UART0 TX, physical pin `1` -> HC-12 `RXD`
+- Pico2-W `GP1` / UART0 RX, physical pin `2` <- HC-12 `TXD`
+- Pico2-W `GND`, for example physical pin `3` or `38` -> HC-12 `GND`
+- HC-12 `SET` can stay unconnected for normal transparent mode
+
+Hardware notes:
+
+- cross TX/RX on each side
+- keep a common ground
+- mount antennas before transmitting
+- start with the HC-12 factory default `9600` baud
+- keep UART wires short while validating the first setup
+- enable the Raspberry Pi UART before production use, then verify `/dev/serial0`
+
+Deploy `tools/hc12_pico_test.py` from `../weather_web_sensors` to the Pico and run it
+from Thonny, MicroPico or the MicroPython REPL for the standalone validation sequence.
+
 ## Configuration
 
 Runtime configuration is loaded from environment variables in `.env`.
@@ -73,6 +229,8 @@ Settings to review first:
 - `RPI3_METEO_LOCATION_LABEL`, `RPI3_METEO_LATITUDE`, `RPI3_METEO_LONGITUDE`, `RPI3_METEO_ALTITUDE_M` for forecast location
 - `RPI3_METEO_MQTT_BROKER` to point to the Raspberry Pi broker or a remote broker
 - `RPI3_METEO_MQTT_RAW_TOPIC` and `RPI3_METEO_MQTT_AGGREGATED_TOPIC` to stay aligned with `weather_web_sensors`
+- `RPI3_METEO_TRANSMISSION_MODE` to choose Wi-Fi/MQTT direct mode or HC-12 bridge mode
+- `RPI3_METEO_HC12_*` when using HC-12 over the Raspberry Pi UART
 - `RPI3_METEO_UI_REFRESH_SECONDS` for screen refresh cadence
 - `RPI3_METEO_DB_HOST`, `RPI3_METEO_DB_PORT`, `RPI3_METEO_DB_NAME`, `RPI3_METEO_DB_USER`, `RPI3_METEO_DB_PASSWORD` for PostgreSQL access
 - `RPI3_METEO_DB_ENABLED`, `RPI3_METEO_DB_STORE_RAW_MESSAGES`, and `RPI3_METEO_DB_STORE_SENSOR_READINGS` to control persistence
@@ -568,19 +726,35 @@ python3 -m compileall app
 
 This is a fast way to catch syntax errors before integration or redeployment.
 
-## Take and recover screenshot
+## Take and recover a kiosk screenshot
 
-With X11, use:
+Create a local directory for captures:
+
 ```bash
-DISPLAY:0 scrop /tmp/screenshot-acceuil.png
+mkdir -p ~/tmp
 ```
 
-with Waylan:
+The Raspberry Pi kiosk currently uses Wayland. From an SSH terminal, provide the
+graphical session environment explicitly and capture the complete display with
+`grim`:
+
 ```bash
-grim /tmp/screenshot-acceuil.png
+XDG_RUNTIME_DIR=/run/user/$(id -u) WAYLAND_DISPLAY=wayland-0 grim ~/tmp/capture-kiosque.png
 ```
 
-and copy with scp:
+If `grim` is not installed, install the Raspberry Pi OS package with
+`sudo apt install grim`. The Wayland socket can be checked with
+`ls -l /run/user/$(id -u)/wayland-*` if the command cannot find the display.
+
+For an X11 session, use `scrot` instead:
+
 ```bash
-scp user@192.168.1.x:/tmp/screenshot-*.png .
+DISPLAY=:0 scrot ~/tmp/capture-kiosque.png
+```
+
+The PNG can be opened directly from the Remote-SSH VS Code explorer. To retrieve it
+from another computer, run there:
+
+```bash
+scp jgrelet@192.168.1.70:~/tmp/capture-kiosque.png .
 ```
