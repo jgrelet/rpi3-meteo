@@ -133,6 +133,44 @@ h2 {
     color: #fff7f0;
 }
 
+.config-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.config-actions form {
+    margin: 0;
+}
+
+.config-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.last-command {
+    margin-top: 0.5em;
+}
+
+.wifi-status-form {
+    margin: 0;
+}
+
+.wifi-status-button {
+    width: 100%;
+    min-height: 100%;
+    border: 2px solid rgba(199, 88, 43, 0.35);
+    text-align: left;
+    cursor: pointer;
+}
+
+.wifi-status-button:hover,
+.wifi-status-button:focus-visible {
+    border-color: var(--accent);
+}
+
 .status-pill {
     display: inline-flex;
     flex: none;

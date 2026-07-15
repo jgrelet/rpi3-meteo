@@ -12,6 +12,7 @@ DEFAULT_UI_PAGES: List[str] = [
     "forecast-now",
     "forecast-hours",
     "forecast-days",
+    "configuration",
 ]
 ALLOWED_UI_PAGES: Set[str] = set(DEFAULT_UI_PAGES)
 ALLOWED_FORECAST_PROVIDERS: Set[str] = {"open-meteo", "openweather"}

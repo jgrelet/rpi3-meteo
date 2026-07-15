@@ -217,6 +217,37 @@ standalone pings are short, but a paced weather JSON line can take longer than o
 second to reach its final newline; a shorter timeout makes `readline()` return an
 incomplete payload.
 
+## 9. Validate remote station configuration
+
+Open the kiosk `Configuration` page after the HC-12 bridge reports connected.
+The control messages use the same radio UART as weather data, with `CMD` requests
+from the Raspberry Pi and `ACK` responses from the Pico.
+
+Validate the controls in this order:
+
+1. Select `Actualiser l'état`. The station panel must show transport `hc-12`, the
+   current Test or Production profile, acquisition and aggregation intervals, RTC
+   state and Wi-Fi state.
+2. Select `Mettre le Pico à l'heure`. The command must be confirmed by the station;
+   both the MicroPython RTC and DS3231 are updated from Raspberry Pi UTC time.
+3. Switch to Test, then Production. Expected intervals are respectively 10/60
+   seconds and 60/3600 seconds. Restart the Pico and request its state again to
+   verify that the selected profile persisted.
+4. Select the Wi-Fi status tile while it shows `Inactif`. It first shows
+   `Connexion…`, then `Actif` with the Pico IP address. HC-12 remains the primary
+   weather transport.
+5. From the Raspberry Pi, validate the temporary Pico diagnostic server:
+
+   ```bash
+   curl -I http://<pico-ip>/
+   ```
+
+   Expected: an HTTP response from the Pico. Select the Wi-Fi tile again to stop
+   the session, or wait for its automatic 15-minute expiry.
+
+Wi-Fi startup is non-blocking and has a 20-second connection timeout. The HTTP
+listener uses a short wait so incoming HC-12 UART data continues to be drained.
+
 ## Validation record
 
 Bench validation on 2026-07-14:
@@ -232,6 +263,9 @@ Bench validation on 2026-07-14:
 - [x] standalone bidirectional reliability and endurance validated
 - [x] HC-12-to-MQTT bridge validated
 - [x] MQTT-to-PostgreSQL ingestion validated
+- [x] remote Pico status and DS3231 time update validated
+- [x] persistent Test/Production profile switching validated
+- [x] temporary Wi-Fi activation and Pico HTTP access validated
 
 Observed successful Pico-to-Raspberry-Pi reception began at
 `2026-07-14 15:27:11 UTC` / `2026-07-14 17:27:11 Europe/Paris`.
@@ -249,6 +283,11 @@ The application path HC-12 -> `weather/sensors/raw` -> PostgreSQL was validated 
 2026-07-15. Consecutive raw messages were stored at `2026-07-15 12:25:30 UTC`,
 `12:25:40 UTC` and `12:25:50 UTC`, corresponding to `14:25:30`, `14:25:40` and
 `14:25:50 Europe/Paris`.
+
+Remote configuration was validated on 2026-07-15. The Pico acknowledged status,
+time and profile commands over HC-12. Production mode applied 60-second acquisition
+and 3600-second aggregation intervals. Temporary Wi-Fi obtained `192.168.1.25`, and
+the Pico web server returned HTTP 200 while HC-12 remained the selected transport.
 
 During the Pico `test` timing profile, raw acquisitions are emitted every 10 seconds
 and aggregated snapshots every 60 seconds. Set the local Raspberry Pi

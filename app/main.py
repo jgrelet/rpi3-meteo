@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Dict, List, Union
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -36,6 +37,7 @@ PAGE_LABELS = {
     "forecast-now": "Maintenant",
     "forecast-hours": "Prochaines heures",
     "forecast-days": "4 jours",
+    "configuration": "Configuration",
 }
 HELP_SECTIONS = [
     {
@@ -82,7 +84,13 @@ def nav_pages() -> List[Dict[str, str]]:
             {
                 "id": page,
                 "label": PAGE_LABELS.get(page, page),
-                "href": "/" if page == "overview" else "/pages/" + page,
+                "href": (
+                    "/"
+                    if page == "overview"
+                    else "/configuration"
+                    if page == "configuration"
+                    else "/pages/" + page
+                ),
             }
         )
     return pages
@@ -388,6 +396,77 @@ async def help_page(request: Request) -> HTMLResponse:
     context = template_context(request)
     context.update({"help_sections": HELP_SECTIONS})
     return templates.TemplateResponse("help.html", context)
+
+
+@app.get("/configuration", response_class=HTMLResponse)
+async def configuration_page(request: Request) -> HTMLResponse:
+    now_utc = datetime.now(timezone.utc)
+    command = hc12_bridge_service.last_command_status()
+    command_action_labels = {
+        "get_status": "Actualisation de l’état",
+        "set_time": "Mise à l’heure",
+        "set_profile": "Changement du mode de fonctionnement",
+        "set_wifi": "Changement de l’état du Wi-Fi",
+    }
+    command_status_labels = {
+        "queued": "en attente d'envoi",
+        "sent": "envoyée, en attente de confirmation",
+        "acknowledged": "confirmée par la station",
+        "failed": "en échec",
+    }
+    if command:
+        command["action_label"] = command_action_labels.get(
+            command.get("action"), str(command.get("action", "Commande"))
+        )
+        command["status_label"] = command_status_labels.get(
+            command.get("status"), str(command.get("status", "inconnu"))
+        )
+    context = template_context(request)
+    context.update(
+        {
+            "transport_status": transport_status(),
+            "mqtt_status": mqtt_status(),
+            "command": command,
+            "pico": hc12_bridge_service.station_status(),
+            "rpi_time_utc": now_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "rpi_time_local": now_utc.astimezone(APP_TIMEZONE).strftime(
+                "%Y-%m-%d %H:%M:%S %Z"
+            ),
+        }
+    )
+    return templates.TemplateResponse("configuration.html", context)
+
+
+@app.post("/configuration/status")
+async def request_pico_status() -> RedirectResponse:
+    hc12_bridge_service.send_command("get_status")
+    return RedirectResponse(url="/configuration", status_code=303)
+
+
+@app.post("/configuration/time")
+async def update_pico_time() -> RedirectResponse:
+    hc12_bridge_service.send_command("set_time", utc=int(time.time()))
+    return RedirectResponse(url="/configuration", status_code=303)
+
+
+@app.post("/configuration/profile/{profile_name}")
+async def update_pico_profile(profile_name: str) -> RedirectResponse:
+    if profile_name not in {"test", "prod"}:
+        return RedirectResponse(url="/configuration", status_code=303)
+    hc12_bridge_service.send_command("set_profile", profile=profile_name)
+    return RedirectResponse(url="/configuration", status_code=303)
+
+
+@app.post("/configuration/wifi/{requested_state}")
+async def update_pico_wifi(requested_state: str) -> RedirectResponse:
+    if requested_state not in {"on", "off"}:
+        return RedirectResponse(url="/configuration", status_code=303)
+    hc12_bridge_service.send_command(
+        "set_wifi",
+        enabled=requested_state == "on",
+        duration_seconds=900,
+    )
+    return RedirectResponse(url="/configuration", status_code=303)
 
 
 @app.get("/pages/{page_name}")

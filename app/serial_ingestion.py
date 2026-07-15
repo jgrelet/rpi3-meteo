@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
+import queue
 import threading
+import time
+import uuid
+from datetime import datetime, timezone
 from typing import Dict, Optional, Union
 
 from paho.mqtt import client as mqtt_client
@@ -45,6 +49,10 @@ class Hc12MqttBridgeService:
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._mqtt_client: Optional[mqtt_client.Client] = None
+        self._command_queue: queue.Queue[Dict[str, object]] = queue.Queue()
+        self._command_lock = threading.Lock()
+        self._last_command: Optional[Dict[str, object]] = None
+        self._station_status: Optional[Dict[str, object]] = None
 
     def start(self) -> None:
         if not self.enabled:
@@ -85,7 +93,36 @@ class Hc12MqttBridgeService:
             "mqtt_port": self.mqtt_port,
             "last_message_at": self.last_message_at,
             "last_error": self.last_error,
+            "last_command": self.last_command_status(),
+            "station": self.station_status(),
         }
+
+    def last_command_status(self) -> Optional[Dict[str, object]]:
+        with self._command_lock:
+            return dict(self._last_command) if self._last_command else None
+
+    def station_status(self) -> Optional[Dict[str, object]]:
+        with self._command_lock:
+            return dict(self._station_status) if self._station_status else None
+
+    def send_command(self, action: str, **parameters: object) -> Dict[str, object]:
+        if not self.enabled:
+            raise RuntimeError("HC-12 bridge is disabled")
+        command = {
+            "id": uuid.uuid4().hex[:12],
+            "action": action,
+            **parameters,
+        }
+        status = {
+            "id": command["id"],
+            "action": action,
+            "status": "queued",
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+        }
+        with self._command_lock:
+            self._last_command = status
+        self._command_queue.put(command)
+        return dict(status)
 
     def _run(self) -> None:
         while not self._stop_event.is_set():
@@ -149,20 +186,70 @@ class Hc12MqttBridgeService:
         with serial.Serial(
             self.device,
             self.baudrate,
-            timeout=self.read_timeout_seconds,
+            timeout=min(float(self.read_timeout_seconds), 0.2),
         ) as serial_port:
             self.serial_connected = True
             self.connected = self.mqtt_connected
             self.last_error = None
             logger.info("HC-12 serial port opened: %s", self.device)
+            rx_buffer = bytearray()
+            last_rx_at = 0.0
             while not self._stop_event.is_set():
-                raw_line = serial_port.readline()
-                if not raw_line:
-                    continue
-                line = raw_line.decode("utf-8", errors="replace")
-                self._bridge_line(mqtt, line)
+                available = serial_port.in_waiting
+                raw = serial_port.read(available or 1)
+                if raw:
+                    rx_buffer.extend(raw)
+                    last_rx_at = time.monotonic()
+                    while b"\n" in rx_buffer:
+                        newline_index = rx_buffer.find(b"\n")
+                        raw_line = bytes(rx_buffer[:newline_index])
+                        rx_buffer = rx_buffer[newline_index + 1 :]
+                        line = raw_line.decode("utf-8", errors="replace").strip()
+                        if line:
+                            self._handle_line(mqtt, line)
+                if self._command_queue.qsize() and time.monotonic() - last_rx_at >= 0.3:
+                    self._write_queued_command(serial_port)
+                if len(rx_buffer) > 8192:
+                    logger.error("HC-12 RX buffer overflow: %s bytes", len(rx_buffer))
+                    rx_buffer = bytearray()
         self.serial_connected = False
         self.connected = False
+
+    def _write_queued_command(self, serial_port) -> None:
+        try:
+            command = self._command_queue.get_nowait()
+        except queue.Empty:
+            return
+        line = "CMD {}\n".format(json.dumps(command, separators=(",", ":")))
+        serial_port.write(line.encode("utf-8"))
+        serial_port.flush()
+        with self._command_lock:
+            if self._last_command and self._last_command.get("id") == command["id"]:
+                self._last_command["status"] = "sent"
+                self._last_command["sent_at"] = datetime.now(timezone.utc).isoformat()
+
+    def _handle_line(self, mqtt: mqtt_client.Client, line: str) -> None:
+        if line.startswith("ACK "):
+            self._handle_ack(line)
+            return
+        self._bridge_line(mqtt, line)
+
+    def _handle_ack(self, line: str) -> None:
+        try:
+            payload = json.loads(line[4:].strip())
+            if not isinstance(payload, dict):
+                raise ValueError("ACK payload is not a JSON object")
+            with self._command_lock:
+                result = payload.get("result")
+                if isinstance(result, dict):
+                    self._station_status = dict(result)
+                if self._last_command and self._last_command.get("id") == payload.get("id"):
+                    self._last_command["status"] = "acknowledged" if payload.get("ok") else "failed"
+                    self._last_command["acknowledged_at"] = datetime.now(timezone.utc).isoformat()
+                    self._last_command["response"] = payload
+        except Exception as exc:
+            self.last_error = "invalid_ack:{}".format(exc)
+            logger.exception("HC-12 ACK processing failed: %s", exc)
 
     def _bridge_line(self, mqtt: mqtt_client.Client, line: str) -> None:
         try:
