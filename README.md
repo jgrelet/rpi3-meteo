@@ -408,7 +408,7 @@ Then clone and start the project:
 ```bash
 mkdir -p ~/github
 cd ~/github
-git clone git@github.com:jgrelet/rpi3-meteo.git rpi-meteo
+git clone git@github.com:/rpi3-meteo.git rpi-meteo
 cd rpi-meteo
 cp .env.generic .env
 ```
@@ -416,7 +416,7 @@ cp .env.generic .env
 If the Pi does not have a GitHub SSH key configured yet, use the HTTPS URL instead:
 
 ```bash
-git clone https://github.com/jgrelet/rpi3-meteo.git rpi-meteo
+git clone https://github.com//rpi3-meteo.git rpi-meteo
 ```
 
 Edit `.env` and set at least the local forecast values:
@@ -756,7 +756,7 @@ The PNG can be opened directly from the Remote-SSH VS Code explorer. To retrieve
 from another computer, run there:
 
 ```bash
-scp jgrelet@192.168.1.70:~/tmp/capture-kiosque.png .
+scp user@192.168.1.x:~/tmp/capture-kiosque.png .
 ```
 
 ## Roadmap
