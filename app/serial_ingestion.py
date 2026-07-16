@@ -53,6 +53,8 @@ class Hc12MqttBridgeService:
         self._command_lock = threading.Lock()
         self._last_command: Optional[Dict[str, object]] = None
         self._station_status: Optional[Dict[str, object]] = None
+        self._last_auto_status_at = 0.0
+        self._auto_status_retry_seconds = 60.0
 
     def start(self) -> None:
         if not self.enabled:
@@ -123,6 +125,21 @@ class Hc12MqttBridgeService:
             self._last_command = status
         self._command_queue.put(command)
         return dict(status)
+
+    def _request_automatic_status(self) -> None:
+        now = time.monotonic()
+        with self._command_lock:
+            if self._station_status is not None:
+                return
+            if now - self._last_auto_status_at < self._auto_status_retry_seconds:
+                return
+            self._last_auto_status_at = now
+        command = {
+            "id": uuid.uuid4().hex[:12],
+            "action": "get_status",
+        }
+        self._command_queue.put(command)
+        logger.info("HC-12 automatic station status requested")
 
     def _run(self) -> None:
         while not self._stop_event.is_set():
@@ -263,6 +280,7 @@ class Hc12MqttBridgeService:
                 raise RuntimeError(f"mqtt_publish_failed:{info.rc}")
             self.last_message_at = payload.get("timestamp")
             self.last_error = None
+            self._request_automatic_status()
         except Exception as exc:
             self.last_error = str(exc)
             logger.exception("HC-12 bridge payload processing failed: %s", exc)

@@ -758,3 +758,14 @@ from another computer, run there:
 ```bash
 scp jgrelet@192.168.1.70:~/tmp/capture-kiosque.png .
 ```
+
+## Roadmap
+
+- Complete the rain and wind sensors, including electronics, mechanical assembly,
+  calibration and software validation.
+- Integrate the autonomous station into its enclosure with the 3D-printed weather
+  shield.
+- Add a Radar kiosk menu for weather-radar animation playback inspired by the
+  Météo & Radar presentation.
+- Measure each operating state and establish a complete power-consumption and
+  solar-energy budget.

@@ -223,6 +223,16 @@ Open the kiosk `Configuration` page after the HC-12 bridge reports connected.
 The control messages use the same radio UART as weather data, with `CMD` requests
 from the Raspberry Pi and `ACK` responses from the Pico.
 
+The bridge requests station status automatically after a valid weather frame only
+while the state is unknown. It retries after 60 seconds if the first request is lost,
+then stops all automatic status polling as soon as the Pico replies. The
+`Actualiser l'état` button remains available for an immediate manual refresh.
+
+For autonomous operation, set `micropico.openOnStart` to `false` in the Pico
+workspace settings. Opening VS Code with automatic MicroPico connection enabled can
+interrupt `main.py` and leave the board at the `>>>` REPL prompt. Connect MicroPico
+manually only for maintenance, and use `Ctrl+D` to soft-reboot and resume `main.py`.
+
 Validate the controls in this order:
 
 1. Select `Actualiser l'état`. The station panel must show transport `hc-12`, the
@@ -266,6 +276,7 @@ Bench validation on 2026-07-14:
 - [x] remote Pico status and DS3231 time update validated
 - [x] persistent Test/Production profile switching validated
 - [x] temporary Wi-Fi activation and Pico HTTP access validated
+- [x] AM312 presence-controlled OLED power saving validated
 
 Observed successful Pico-to-Raspberry-Pi reception began at
 `2026-07-14 15:27:11 UTC` / `2026-07-14 17:27:11 Europe/Paris`.
@@ -288,6 +299,11 @@ Remote configuration was validated on 2026-07-15. The Pico acknowledged status,
 time and profile commands over HC-12. Production mode applied 60-second acquisition
 and 3600-second aggregation intervals. Temporary Wi-Fi obtained `192.168.1.25`, and
 the Pico web server returned HTTP 200 while HC-12 remained the selected transport.
+
+AM312-controlled OLED power saving was validated on 2026-07-16. The PIR output is
+read through `GP27/ADC1` to avoid the RP2350-E9 digital-input behaviour observed on
+GP16. The display powered off after 20 seconds without presence, powered on after a
+new detection, and weather acquisition plus HC-12 export continued while it was off.
 
 During the Pico `test` timing profile, raw acquisitions are emitted every 10 seconds
 and aggregated snapshots every 60 seconds. Set the local Raspberry Pi
