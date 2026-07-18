@@ -731,7 +731,7 @@ This is a fast way to catch syntax errors before integration or redeployment.
 Create a local directory for captures:
 
 ```bash
-mkdir -p ~/tmp
+mkdir -p tmp
 ```
 
 The Raspberry Pi kiosk currently uses Wayland. From an SSH terminal, provide the
@@ -739,7 +739,7 @@ graphical session environment explicitly and capture the complete display with
 `grim`:
 
 ```bash
-XDG_RUNTIME_DIR=/run/user/$(id -u) WAYLAND_DISPLAY=wayland-0 grim ~/tmp/capture-kiosque.png
+XDG_RUNTIME_DIR=/run/user/$(id -u) WAYLAND_DISPLAY=wayland-0 grim tmp/capture-kiosque.png
 ```
 
 If `grim` is not installed, install the Raspberry Pi OS package with
@@ -749,7 +749,7 @@ If `grim` is not installed, install the Raspberry Pi OS package with
 For an X11 session, use `scrot` instead:
 
 ```bash
-DISPLAY=:0 scrot ~/tmp/capture-kiosque.png
+DISPLAY=:0 scrot tmp/capture-kiosque.png
 ```
 
 The PNG can be opened directly from the Remote-SSH VS Code explorer. To retrieve it
