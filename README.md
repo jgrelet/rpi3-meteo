@@ -1,6 +1,8 @@
 # rpi-meteo
 
-Weather dashboard designed for a Raspberry Pi.
+A display dashboard for a Raspberry Pi showing weather data acquired using a custom-designed [Pico2-w](https://github.com/jgrelet/weather_web_sensors)
+
+Originally, the project was intended to use a Raspberry Pi 3 with its built-in 7-inch screen, but the hardware resources proved insufficient for this project. I therefore had to adapt the case to accommodate a Raspberry Pi 4 with 4 GB of RAM, which offers excellent performance in terms of responsiveness to events.
 
 The project combines:
 
